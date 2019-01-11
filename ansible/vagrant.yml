@@ -1,0 +1,16 @@
+---
+- hosts: all
+  become: true
+  vars:
+    php_default_version_debian: '7.2'
+  pre_tasks:
+    - name: update apt cache
+      apt: update_cache=yes cache_valid_time=3600
+  roles:
+    - geerlingguy.php
+    - geerlingguy.composer
+  post_tasks:
+    - name: composer install
+      shell: composer install
+      args:
+        chdir: /vagrant

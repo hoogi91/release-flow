@@ -4,7 +4,7 @@
 
     <testsuites>
         <testsuite name="Unit test suite">
-            <directory suffix="Test.php">./test/Unit</directory>
+            <directory suffix="Bootstrap.php">./tests/Unit</directory>
         </testsuite>
     </testsuites>
 
