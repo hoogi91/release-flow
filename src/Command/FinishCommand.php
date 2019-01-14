@@ -25,6 +25,7 @@ class FinishCommand extends AbstractFlowCommand
      */
     protected function configure()
     {
+        parent::configure();
         $this->setName('finish')->setDescription('finish release or hotfix branch and create new tag.');
     }
 
@@ -37,36 +38,49 @@ class FinishCommand extends AbstractFlowCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        parent::execute($input, $output);
+        $result = parent::execute($input, $output);
+        if ($result !== 0) {
+            return $result;
+        }
 
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
 
+        $newVersion = $this->getVersionControl()->getFlowVersion();
         if ($this->getVersionControl()->isHotfix()) {
             // create questions for hotfix branch
-            $confirm = new ConfirmationQuestion('Please confirm to finish this hotfix.');
-            $publish = new ConfirmationQuestion('Shall this hotfix be published automatically?', false);
+            $confirm = new ConfirmationQuestion(sprintf(
+                '<question>Shall hotfix/%s be finished? [Y/n]</question>',
+                $newVersion->getVersionString()
+            ));
+            $publish = new ConfirmationQuestion(
+                '<question>Shall this hotfix be published automatically? [y/N]</question>',
+                false
+            );
         } else {
             // on default we create questions for a release branch
-            $confirm = new ConfirmationQuestion('Please confirm to finish this release.');
-            $publish = new ConfirmationQuestion('Shall this release be published automatically?', false);
+            $confirm = new ConfirmationQuestion(sprintf(
+                '<question>Shall release/%s be finished? [Y/n]</question>',
+                $newVersion->getVersionString()
+            ));
+            $publish = new ConfirmationQuestion(
+                '<question>Shall this release be published automatically? [y/N]</question>',
+                false
+            );
         }
 
         if ($helper->ask($input, $output, $confirm)) {
             // execute version file providers to set flow version in additional files
-            $this->executeVersionFileProviders($this->getVersionControl()->getFlowVersion());
+            $this->executeVersionFileProviders($newVersion);
 
             // commit changes to version control before finishing hotfix
-            $this->getVersionControl()->saveWorkingCopy(sprintf(
-                'Bump version to %s',
-                $this->getVersionControl()->getFlowVersion()->getVersionString()
-            ));
+            $this->getVersionControl()->saveWorkingCopy(sprintf('Bump version to %s', $newVersion->getVersionString()));
 
             // finish hotfix and publish it if user accepts
             if ($this->getVersionControl()->isHotfix()) {
-                $this->versionControl->finishHotfix($helper->ask($input, $output, $publish));
+                $output->writeln($this->versionControl->finishHotfix($helper->ask($input, $output, $publish)));
             } else {
-                $this->versionControl->finishRelease($helper->ask($input, $output, $publish));
+                $output->writeln($this->versionControl->finishRelease($helper->ask($input, $output, $publish)));
             }
         }
 

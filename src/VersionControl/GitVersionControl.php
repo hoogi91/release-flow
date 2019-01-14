@@ -2,8 +2,10 @@
 
 namespace Hoogi91\ReleaseFlow\VersionControl;
 
-use Hoogi91\ReleaseFlow\Exception;
-use PHPGit\Git as PHPGit;
+use Hoogi91\ReleaseFlow\Utility\LogUtility;
+use TQ\Git\Repository\Repository;
+use TQ\Vcs\Cli\CallException;
+use TQ\Vcs\Cli\CallResult;
 use Version\Exception\InvalidVersionStringException;
 use Version\Version;
 
@@ -19,7 +21,7 @@ class GitVersionControl extends AbstractVersionControl
     /**
      * git command line client
      *
-     * @var PHPGit
+     * @var Repository
      */
     protected $git;
 
@@ -30,8 +32,16 @@ class GitVersionControl extends AbstractVersionControl
      */
     public function __construct(string $cwd)
     {
-        $this->git = new PHPGit();
-        $this->git->setRepository($cwd);
+        $this->setWorkingDirectory($cwd);
+        $this->git = Repository::open($this->workingDirectory);
+    }
+
+    /**
+     * @return array
+     */
+    public function getBranches()
+    {
+        return $this->git->getBranches();
     }
 
     /**
@@ -39,18 +49,7 @@ class GitVersionControl extends AbstractVersionControl
      */
     public function getCurrentBranch()
     {
-        //quieted: see https://github.com/kzykhys/PHPGit/issues/4
-        @$branches = $this->git->branch();
-        if (empty($branches)) {
-            return '';
-        }
-
-        foreach ($branches as $branch) {
-            if (isset($branch['current']) && $branch['current'] === true) {
-                return $branch['name'];
-            }
-        }
-        return '';
+        return $this->git->getCurrentBranch();
     }
 
     /**
@@ -58,18 +57,7 @@ class GitVersionControl extends AbstractVersionControl
      */
     public function hasLocalModifications()
     {
-        $indicators = array(
-            \PHPGit\Command\StatusCommand::MODIFIED,
-            \PHPGit\Command\StatusCommand::UNTRACKED,
-        );
-
-        $status = $this->git->status();
-        foreach ($status['changes'] as $mod) {
-            if (in_array($mod['index'], $indicators)) {
-                return true;
-            }
-        }
-        return false;
+        return $this->git->isDirty();
     }
 
     /**
@@ -77,20 +65,25 @@ class GitVersionControl extends AbstractVersionControl
      */
     public function getTags()
     {
-        $tags = $this->git->tag();
+        /** @var CallResult $result */
+        $result = $this->git->getGit()->{'tag'}($this->workingDirectory, []);
+        $tags = array_map('trim', explode(PHP_EOL, $result->getStdOut()));
         if (empty($tags)) {
             return [];
         }
 
-        $versions = [];
-        foreach ($tags as $versionNumber) {
+        return array_filter(array_map(function ($versionNumber) {
             try {
-                $versions[] = Version::fromString($versionNumber);
+                return Version::fromString($versionNumber);
             } catch (InvalidVersionStringException $e) {
-                // TODO: log invalid version string exceptions
+                LogUtility::warning(sprintf(
+                    'Version Number %s couldn\'t be formatted to class %s',
+                    $versionNumber,
+                    Version::class
+                ));
+                return null;
             }
-        }
-        return $versions;
+        }, $tags));
     }
 
     /**
@@ -98,103 +91,68 @@ class GitVersionControl extends AbstractVersionControl
      *
      * @return bool
      */
-    public function saveWorkingCopy($commitMsg = '')
+    public function saveWorkingCopy(string $commitMsg = '')
     {
-        $this->git->add('.');
-        return $this->git->commit($commitMsg);
+        try {
+            $this->git->add();
+            $this->git->commit($commitMsg);
+            return true;
+        } catch (CallException $e) {
+            LogUtility::error(sprintf('Working Copy couldn\'t be saved: %s', $e->getMessage()));
+            return false;
+        }
     }
 
     /**
-     * Start a git flow release.
+     * Get the command line string that will be an argument of executeCommand and start the version control flow
      *
      * @param Version $version
-     */
-    public function startRelease(Version $version)
-    {
-        $this->executeGitCommand(sprintf('flow release start %s', $version->getVersionString()));
-    }
-
-    /**
-     * Finishes the current git flow release without tagging.
+     * @param string  $branchType
      *
-     * @param boolean $publish
-     *
-     * @throws Exception
+     * @return string[]
      */
-    public function finishRelease($publish = false)
+    protected function getStartCommands(Version $version, string $branchType = self::RELEASE)
     {
-        if ($this->isRelease() === false) {
-            throw new Exception('Can\'t finish release if current branch isn\'t the release branch');
+        if ($branchType === self::RELEASE) {
+            return [sprintf('git checkout -b release/%s %s', $version->getVersionString(), self::DEVELOP)];
+        } elseif ($branchType === self::HOTFIX) {
+            return [sprintf('git checkout -b hotfix/%s %s', $version->getVersionString(), self::MASTER)];
         }
-
-        $this->executeGitCommand(vsprintf('flow release finish %1$s-m "Tagging version %2$s" %2$s 1>/dev/null 2>&1', [
-            ($publish ? '-p ' : ''),
-            $this->getFlowVersion()->getVersionString(),
-        ]));
-
-        // TODO: in normal git version we need to create tag itself:
-        // $this->git->tag->create($tagName)
+        return [];
     }
 
     /**
-     * Start a git flow hotfix.
+     * Get the command line string that will be an argument of executeCommand and finish the version control flow
      *
      * @param Version $version
-     */
-    public function startHotfix(Version $version)
-    {
-        $this->executeGitCommand(sprintf('flow hotfix start %s', $version->getVersionString()));
-    }
-
-    /**
-     * Finishes the current git flow hotfix without tagging.
-     *
+     * @param string  $branchType
      * @param boolean $publish
      *
-     * @throws Exception
+     * @return string[]
      */
-    public function finishHotfix($publish = false)
+    protected function getFinishCommands(Version $version, string $branchType = self::RELEASE, bool $publish = false)
     {
-        if ($this->isHotfix() === false) {
-            throw new Exception('Can\'t finish hotfix if current branch isn\'t the hotfix branch');
+        if ($branchType === self::RELEASE) {
+            return array_filter([
+                sprintf('git checkout %s', self::MASTER),
+                sprintf('git merge --no-ff release/%s', $version->getVersionString()),
+                sprintf('git tag -a %1$s -m "Tagging version %1$s"', $version->getVersionString()),
+                ($publish ? 'git push origin --tags' : ''),
+                sprintf('git checkout %s', self::DEVELOP),
+                sprintf('git merge --no-ff release/%s', $version->getVersionString()),
+                sprintf('git branch -d release/%s', $version->getVersionString()),
+            ]);
+        } elseif ($branchType === self::HOTFIX) {
+            return [
+                sprintf('git checkout %s', self::MASTER),
+                sprintf('git merge --no-ff hotfix/%s', $version->getVersionString()),
+                sprintf('git tag -a %1$s -m "Tagging version %1$s"', $version->getVersionString()),
+                ($publish ? 'git push origin --tags' : ''),
+                sprintf('git checkout %s', self::DEVELOP),
+                sprintf('git merge --no-ff hotfix/%s', $version->getVersionString()),
+                sprintf('git branch -d hotfix/%s', $version->getVersionString()),
+            ];
         }
-
-        $this->executeGitCommand(vsprintf('flow hotfix finish %1$s-m "Tagging version %2$s" %2$s 1>/dev/null 2>&1', [
-            ($publish ? '-p ' : ''),
-            $this->getFlowVersion()->getVersionString(),
-        ]));
-
-        // TODO: in normal git version we need to create tag itself:
-        // $this->git->tag->create($tagName)
-    }
-
-    /**
-     * Executes a git command.
-     *
-     * @param string $cmd
-     *
-     * @return mixed
-     */
-    private function executeGitCommand($cmd)
-    {
-        /**
-         * @link http://stackoverflow.com/a/10986987
-         * @link https://github.com/symfony/symfony/pull/3565
-         * @link https://github.com/symfony/symfony/issues/3555
-         * $builder = $this->git->getProcessBuilder();
-         * $builder->inheritEnvironmentVariables(true); //
-         * $builder->add($cmd);
-         * $process = $builder->getProcess();
-         *
-         */
-
-        if ($this->dryRun !== false) {
-            return $cmd;
-        }
-
-        $var = null;
-        system('git ' . $cmd, $var);
-        return $var;
-        //return $this->git->run($process);
+        return [];
     }
 }

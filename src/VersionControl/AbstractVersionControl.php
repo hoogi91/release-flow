@@ -6,6 +6,7 @@ use Hoogi91\ReleaseFlow\Command\FinishCommand;
 use Hoogi91\ReleaseFlow\Command\HotfixCommand;
 use Hoogi91\ReleaseFlow\Command\StartCommand;
 use Hoogi91\ReleaseFlow\Exception;
+use Hoogi91\ReleaseFlow\Utility\LogUtility;
 use Version\Exception\InvalidVersionStringException;
 use Version\Version;
 
@@ -15,6 +16,18 @@ use Version\Version;
  */
 abstract class AbstractVersionControl implements VersionControlInterface
 {
+    /**
+     * master identifying string in branch name
+     * @var string
+     */
+    const MASTER = 'master';
+
+    /**
+     * develop identifying string in branch name
+     * @var string
+     */
+    const DEVELOP = 'develop';
+
     /**
      * release identifying string in branch name
      * @var string
@@ -37,22 +50,30 @@ abstract class AbstractVersionControl implements VersionControlInterface
     ];
 
     /**
+     * @var string
+     */
+    protected $workingDirectory;
+
+    /**
      * dry-run: do nothing
      * @var boolean
      */
     protected $dryRun = false;
 
     /**
-     * @var array
+     * @param string $workingDirectory
      */
-    protected $dryRunCommandWords = array('tag', 'push', 'add', 'commit');
+    public function setWorkingDirectory(string $workingDirectory)
+    {
+        $this->workingDirectory = $workingDirectory;
+    }
 
     /**
      * @param boolean $flag
      */
-    public function setDryRun($flag)
+    public function setDryRun(bool $flag)
     {
-        $this->dryRun = (bool)$flag;
+        $this->dryRun = $flag;
     }
 
     /**
@@ -68,13 +89,37 @@ abstract class AbstractVersionControl implements VersionControlInterface
             return false;
         }
 
-        if ($command === FinishCommand::class && !$this->isInTheFlow()) {
-            throw new Exception(sprintf(
-                'You are not in a flow release branch (%s).',
-                $this->getCurrentBranch()
-            ));
-        } elseif ($command !== FinishCommand::class && $this->isInTheFlow()) {
-            throw new Exception('You are already in a flow branch.');
+        // evaluate release and hotfix branches
+        $releaseOrHotfixBranch = array_values(array_filter($this->getBranches(), function ($branch) {
+            return strpos($branch, static::RELEASE) === 0 || strpos($branch, static::HOTFIX) === 0;
+        }));
+
+        if ($command === FinishCommand::class) {
+            if (empty($releaseOrHotfixBranch)) {
+                // release or hotfix hasn't been started yet
+                throw new Exception('You currently do not have a active flow release/hotfix branch to finish');
+            } elseif (!in_array($this->getCurrentBranch(), $releaseOrHotfixBranch)) {
+                // current branch isn't the release or hotfix branch => switch before execute
+                throw new Exception(sprintf(
+                    'You are not in a flow release/hotfix branch (current: %s). Please switch into a flow branch: %s',
+                    $this->getCurrentBranch(),
+                    implode(', ', $releaseOrHotfixBranch)
+                ));
+            }
+        } elseif (in_array($command, [StartCommand::class, HotfixCommand::class])) {
+            if (in_array($this->getCurrentBranch(), $releaseOrHotfixBranch)) {
+                // already in release or hotfix branch
+                throw new Exception(sprintf(
+                    'You are already in flow branch: %s',
+                    $this->getCurrentBranch()
+                ));
+            } elseif (!empty($releaseOrHotfixBranch)) {
+                // hotfix or release branch already exists so cancel creation
+                throw new Exception(sprintf(
+                    'You already have active flow branch(es) to finish first: %s',
+                    implode(', ', $releaseOrHotfixBranch)
+                ));
+            }
         }
         return true;
     }
@@ -123,6 +168,16 @@ abstract class AbstractVersionControl implements VersionControlInterface
     }
 
     /**
+     * Checks if the current branch is a release or hotfix branch.
+     *
+     * @return boolean
+     */
+    protected function isInTheFlow()
+    {
+        return $this->isRelease() || $this->isHotfix();
+    }
+
+    /**
      * Returns the current flow version number => see getFlowBranch if branch is release or hotfix
      *
      * @return Version
@@ -134,7 +189,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
             throw new Exception('Flow version can\'t be determined cause no flow is started!');
         }
 
-        // get current branch name
+        // get current branch name => will start with release or hotfix
         $branch = $this->getCurrentBranch();
 
         try {
@@ -144,17 +199,123 @@ abstract class AbstractVersionControl implements VersionControlInterface
             }
             return Version::fromString(str_replace(static::RELEASE . '/', '', $branch));
         } catch (InvalidVersionStringException $e) {
+            LogUtility::warning(sprintf(
+                'Version Number of branch %s couldn\'t be formatted to class %s',
+                $branch,
+                Version::class
+            ));
             throw new Exception('Cannot detect version in branch name: ' . $branch);
         }
     }
 
     /**
-     * Checks if the current branch is a release or hotfix branch.
+     * Start a git flow release.
      *
-     * @return boolean
+     * @param Version $version
+     *
+     * @return string
      */
-    protected function isInTheFlow()
+    public function startRelease(Version $version)
     {
-        return $this->isRelease() || $this->isHotfix();
+        return $this->executeCommands($this->getStartCommands($version, static::RELEASE));
+    }
+
+    /**
+     * Finishes the current git flow release without tagging.
+     *
+     * @param boolean $publish
+     *
+     * @return string
+     * @throws Exception
+     */
+    public function finishRelease(bool $publish = false)
+    {
+        if ($this->isRelease() === false) {
+            throw new Exception('Can\'t finish release if current branch isn\'t the release branch');
+        }
+        return $this->executeCommands($this->getFinishCommands($this->getFlowVersion(), static::RELEASE, $publish));
+    }
+
+    /**
+     * Start a git flow hotfix.
+     *
+     * @param Version $version
+     *
+     * @return string
+     */
+    public function startHotfix(Version $version)
+    {
+        return $this->executeCommands($this->getStartCommands($version, static::HOTFIX));
+    }
+
+    /**
+     * Finishes the current git flow hotfix without tagging.
+     *
+     * @param boolean $publish
+     *
+     * @return string
+     * @throws Exception
+     */
+    public function finishHotfix(bool $publish = false)
+    {
+        if ($this->isHotfix() === false) {
+            throw new Exception('Can\'t finish hotfix if current branch isn\'t the hotfix branch');
+        }
+        return $this->executeCommands($this->getFinishCommands($this->getFlowVersion(), static::HOTFIX, $publish));
+    }
+
+    /**
+     * Get the command line string that will be an argument of executeCommand and start the version control flow
+     *
+     * @param Version $version
+     * @param string  $branchType
+     *
+     * @return string[]
+     */
+    abstract protected function getStartCommands(
+        Version $version,
+        string $branchType = self::RELEASE
+    );
+
+    /**
+     * Get the command line string that will be an argument of executeCommand and finish the version control flow
+     *
+     * @param Version $version
+     * @param string  $branchType
+     * @param boolean $publish
+     *
+     * @return string[]
+     */
+    abstract protected function getFinishCommands(
+        Version $version,
+        string $branchType = self::RELEASE,
+        bool $publish = false
+    );
+
+    /**
+     * Will execute given command and return command's output
+     *
+     * @param array $commands
+     *
+     * @return string
+     */
+    protected function executeCommands(array $commands)
+    {
+        if (empty($commands)) {
+            return '<error>No command given! Nothing to do...</error>';
+        }
+
+        if ($this->dryRun !== false) {
+            return sprintf(
+                "<error>DRY-RUN</error> <info>the following commands will be executed:</info>\n<fg=cyan>> %s</>",
+                implode(PHP_EOL . '> ', $commands)
+            );
+        }
+
+        $output = null;
+        foreach ($commands as $command) {
+            system($command, $var);
+        }
+        return $output;
     }
 }

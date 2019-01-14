@@ -1,6 +1,5 @@
 # Release with the flow.
-This project is going to be a successor of release-manager. It will be a zero-conf tool 
-to version PHP project releases semantically, tightly coupled with composer and git-flow.
+SemVer-compliant release versioning/version bumping with git-flow incl. providers to update additional project files.
 
 ![screenshot](doc/screen.png "Usage")
 
@@ -15,6 +14,3 @@ or to hotfix (patch-bump version based on master branch)
 release-flow hotfix
 release-flow finish
 ```
-
-## ToDo's
-- replace `kzykhys/git` with `teqneers/php-stream-wrapper-for-git` or `cpliakas/git-wrapper`

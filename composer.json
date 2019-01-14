@@ -1,6 +1,6 @@
 {
   "name": "hoogi91/release-flow",
-  "description": "SemVer-compliant release versioning/version bumping with git-flow incl. providers to update additional project files ",
+  "description": "SemVer-compliant release versioning/version bumping with git-flow incl. providers to update additional project files",
   "license": "GPL-3.0-or-later",
   "version": "0.1.1",
   "authors": [
@@ -16,8 +16,8 @@
   "require": {
     "php": ">=7.2",
     "symfony/console": "^4.2",
-    "kzykhys/git": "1.0.*@dev",
-    "nikolaposa/version": "^3.1"
+    "nikolaposa/version": "^3.1",
+    "teqneers/php-stream-wrapper-for-git": "^2.0"
   },
   "require-dev": {
     "squizlabs/php_codesniffer": "^3.0",
@@ -37,8 +37,8 @@
     }
   },
   "config": {
-    "vendor-dir": ".Build/vendor",
-    "bin-dir": ".Build/bin"
+    "vendor-dir": "vendor",
+    "bin-dir": "bin"
   },
   "bin": [
     "bin/release-flow"

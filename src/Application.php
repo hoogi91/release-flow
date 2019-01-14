@@ -6,9 +6,11 @@ use Hoogi91\ReleaseFlow\Command\AbstractFlowCommand;
 use Hoogi91\ReleaseFlow\Command\FinishCommand;
 use Hoogi91\ReleaseFlow\Command\HotfixCommand;
 use Hoogi91\ReleaseFlow\Command\StartCommand;
+use Hoogi91\ReleaseFlow\VersionControl\GitFlowVersionControl;
 use Hoogi91\ReleaseFlow\VersionControl\GitVersionControl;
 use Hoogi91\ReleaseFlow\VersionControl\VersionControlInterface;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -32,12 +34,22 @@ class Application extends \Symfony\Component\Console\Application
      * @param string $name
      * @param string $version
      */
-    public function __construct(string $name = 'UNKNOWN', string $version = 'UNKNOWN')
+    public function __construct(string $name = 'release-flow', string $version = '0.1.1')
     {
         parent::__construct($name, $version);
+        $workingDirectory = getcwd();
 
-        // TODO: make used version control configurable
-        $this->vcs = new GitVersionControl(getcwd());
+        // TODO: evaluate version control by working directory or option?!
+        try {
+            $this->vcs = new GitFlowVersionControl($workingDirectory);
+        } catch (\InvalidArgumentException $e) {
+            $output = new ConsoleOutput();
+            $output->writeln(sprintf(
+                '<error>Git Repository couldn\'t be found in %s</error>',
+                $workingDirectory
+            ));
+            exit(255);
+        }
     }
 
     /**

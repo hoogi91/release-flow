@@ -6,7 +6,8 @@ use Hoogi91\ReleaseFlow\Exception;
 use Version\Version;
 
 /**
- * Interface for version control systems.
+ * Interface VersionControlInterface
+ * @package Hoogi91\ReleaseFlow\VersionControl
  */
 interface VersionControlInterface
 {
@@ -16,6 +17,13 @@ interface VersionControlInterface
      * @return boolean
      */
     public function canProcessCommand(string $command);
+
+    /**
+     * Return array list of all branches
+     *
+     * @return array
+     */
+    public function getBranches();
 
     /**
      * Return the current branch
@@ -59,7 +67,7 @@ interface VersionControlInterface
      *
      * @return boolean
      */
-    public function saveWorkingCopy($commitMsg = '');
+    public function saveWorkingCopy(string $commitMsg = '');
 
     /**
      * Return if current branch is release branch
@@ -82,7 +90,7 @@ interface VersionControlInterface
      *
      * @throws Exception
      */
-    public function finishRelease($publish = false);
+    public function finishRelease(bool $publish = false);
 
     /**
      * Return if current branch is hotfix branch
@@ -105,5 +113,5 @@ interface VersionControlInterface
      *
      * @throws Exception
      */
-    public function finishHotfix($publish = false);
+    public function finishHotfix(bool $publish = false);
 }

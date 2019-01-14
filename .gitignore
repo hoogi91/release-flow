@@ -1,3 +1,6 @@
 .idea/
-.Build/
+.vagrant/
+bin/
+!bin/release-flow
+vendor/
 composer.lock
