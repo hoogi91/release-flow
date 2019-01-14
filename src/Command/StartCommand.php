@@ -9,7 +9,7 @@ use Symfony\Component\Console\Question\ChoiceQuestion;
 use Version\Version;
 
 /**
- * This commands asks for the version increment and then creates a regular release or hotfix branch.
+ * This commands asks for the version increment and then creates a regular release branch.
  *
  * @author Thorsten Hogenkamp <hoogi20@googlemail.com>
  * @author Daniel Pozzi <bonndan76@googlemail.com>
@@ -21,11 +21,11 @@ class StartCommand extends AbstractFlowCommand
     const PATCH = 'patch';
 
     /**
-     * creates a regular release or hotfix branch.
+     * creates a release branch with version increment
      */
     protected function configure()
     {
-        $this->setName('start')->setDescription('begin a release or hotfix branch.');
+        $this->setName('start')->setDescription('creates a release branch with version increment');
     }
 
     /**
@@ -54,11 +54,7 @@ class StartCommand extends AbstractFlowCommand
         $output->writeln('<info>The next version will be ' . $nextVersion . '.</info>');
 
         // create release or hotfix branch for new version in version control
-        if ($incrementType === static::PATCH) {
-            $this->versionControl->startHotfix($nextVersion);
-        } else {
-            $this->versionControl->startRelease($nextVersion);
-        }
+        $this->versionControl->startRelease($nextVersion);
         return 0;
     }
 
@@ -70,14 +66,12 @@ class StartCommand extends AbstractFlowCommand
     protected function getNextVersion(string $incrementType = self::PATCH)
     {
         $currentVersion = $this->versionControl->getCurrentVersion();
-        switch ($incrementType) {
-            case self::MAJOR:
-                return $currentVersion->incrementMajor();
-            case self::MINOR:
-                return $currentVersion->incrementMinor();
-            default:
-                return $currentVersion->incrementPatch();
+        if ($incrementType === self::MAJOR) {
+            return $currentVersion->incrementMajor();
+        } elseif ($incrementType === self::MINOR) {
+            return $currentVersion->incrementMinor();
         }
+        return $currentVersion->incrementPatch();
     }
 
 }

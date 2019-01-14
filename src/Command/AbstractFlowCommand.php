@@ -24,6 +24,24 @@ abstract class AbstractFlowCommand extends Command
     protected $versionControl;
 
     /**
+     * @return VersionControlInterface
+     */
+    public function getVersionControl(): VersionControlInterface
+    {
+        return $this->versionControl;
+    }
+
+    /**
+     * Sets the version control to use
+     *
+     * @param VersionControlInterface $vcs
+     */
+    public function setVersionControl(VersionControlInterface $vcs)
+    {
+        $this->versionControl = $vcs;
+    }
+
+    /**
      * @param InputInterface  $input
      * @param OutputInterface $output
      *
@@ -40,23 +58,5 @@ abstract class AbstractFlowCommand extends Command
             return 255;
         }
         return 0;
-    }
-
-    /**
-     * @return VersionControlInterface
-     */
-    public function getVersionControl(): VersionControlInterface
-    {
-        return $this->versionControl;
-    }
-
-    /**
-     * Sets the version control to use
-     *
-     * @param VersionControlInterface $vcs
-     */
-    public function setVersionControl(VersionControlInterface $vcs)
-    {
-        $this->versionControl = $vcs;
     }
 }
