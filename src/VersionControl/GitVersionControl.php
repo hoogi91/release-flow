@@ -94,8 +94,10 @@ class GitVersionControl extends AbstractVersionControl
     public function saveWorkingCopy(string $commitMsg = '')
     {
         try {
-            $this->git->add();
-            $this->git->commit($commitMsg);
+            if ($this->dryRun === false) {
+                $this->git->add();
+                $this->git->commit($commitMsg);
+            }
             return true;
         } catch (CallException $e) {
             LogUtility::error(sprintf('Working Copy couldn\'t be saved: %s', $e->getMessage()));
