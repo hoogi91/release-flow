@@ -5,7 +5,7 @@ namespace Hoogi91\ReleaseFlow\VersionControl;
 use Hoogi91\ReleaseFlow\Command\FinishCommand;
 use Hoogi91\ReleaseFlow\Command\HotfixCommand;
 use Hoogi91\ReleaseFlow\Command\StartCommand;
-use Hoogi91\ReleaseFlow\Exception;
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Hoogi91\ReleaseFlow\Utility\LogUtility;
 use Version\Exception\InvalidVersionStringException;
 use Version\Version;
@@ -80,7 +80,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * @param string $command
      *
      * @return bool
-     * @throws Exception
+     * @throws VersionControlException
      */
     public function canProcessCommand(string $command)
     {
@@ -97,10 +97,10 @@ abstract class AbstractVersionControl implements VersionControlInterface
         if ($command === FinishCommand::class) {
             if (empty($releaseOrHotfixBranch)) {
                 // release or hotfix hasn't been started yet
-                throw new Exception('You currently do not have a active flow release/hotfix branch to finish');
+                throw new VersionControlException('You currently do not have a active flow release/hotfix branch to finish');
             } elseif (!in_array($this->getCurrentBranch(), $releaseOrHotfixBranch)) {
                 // current branch isn't the release or hotfix branch => switch before execute
-                throw new Exception(sprintf(
+                throw new VersionControlException(sprintf(
                     'You are not in a flow release/hotfix branch (current: %s). Please switch into a flow branch: %s',
                     $this->getCurrentBranch(),
                     implode(', ', $releaseOrHotfixBranch)
@@ -109,13 +109,13 @@ abstract class AbstractVersionControl implements VersionControlInterface
         } elseif (in_array($command, [StartCommand::class, HotfixCommand::class])) {
             if (in_array($this->getCurrentBranch(), $releaseOrHotfixBranch)) {
                 // already in release or hotfix branch
-                throw new Exception(sprintf(
+                throw new VersionControlException(sprintf(
                     'You are already in flow branch: %s',
                     $this->getCurrentBranch()
                 ));
             } elseif (!empty($releaseOrHotfixBranch)) {
                 // hotfix or release branch already exists so cancel creation
-                throw new Exception(sprintf(
+                throw new VersionControlException(sprintf(
                     'You already have active flow branch(es) to finish first: %s',
                     implode(', ', $releaseOrHotfixBranch)
                 ));
@@ -181,12 +181,12 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * Returns the current flow version number => see getFlowBranch if branch is release or hotfix
      *
      * @return Version
-     * @throws Exception
+     * @throws VersionControlException
      */
     public function getFlowVersion()
     {
         if (!$this->isInTheFlow()) {
-            throw new Exception('Flow version can\'t be determined cause no flow is started!');
+            throw new VersionControlException('Flow version can\'t be determined cause no flow is started!');
         }
 
         // get current branch name => will start with release or hotfix
@@ -204,7 +204,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
                 $branch,
                 Version::class
             ));
-            throw new Exception('Cannot detect version in branch name: ' . $branch);
+            throw new VersionControlException('Cannot detect version in branch name: ' . $branch);
         }
     }
 
@@ -226,12 +226,12 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * @param boolean $publish
      *
      * @return string
-     * @throws Exception
+     * @throws VersionControlException
      */
     public function finishRelease(bool $publish = false)
     {
         if ($this->isRelease() === false) {
-            throw new Exception('Can\'t finish release if current branch isn\'t the release branch');
+            throw new VersionControlException('Can\'t finish release if current branch isn\'t the release branch');
         }
         return $this->executeCommands($this->getFinishCommands($this->getFlowVersion(), static::RELEASE, $publish));
     }
@@ -254,12 +254,12 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * @param boolean $publish
      *
      * @return string
-     * @throws Exception
+     * @throws VersionControlException
      */
     public function finishHotfix(bool $publish = false)
     {
         if ($this->isHotfix() === false) {
-            throw new Exception('Can\'t finish hotfix if current branch isn\'t the hotfix branch');
+            throw new VersionControlException('Can\'t finish hotfix if current branch isn\'t the hotfix branch');
         }
         return $this->executeCommands($this->getFinishCommands($this->getFlowVersion(), static::HOTFIX, $publish));
     }

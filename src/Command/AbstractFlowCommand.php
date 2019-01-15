@@ -2,10 +2,11 @@
 
 namespace Hoogi91\ReleaseFlow\Command;
 
-use Hoogi91\ReleaseFlow\Exception;
+use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
 use Hoogi91\ReleaseFlow\VersionControl\AbstractVersionControl;
 use Hoogi91\ReleaseFlow\VersionControl\VersionControlInterface;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -96,7 +97,7 @@ abstract class AbstractFlowCommand extends Command
      * @param OutputInterface $output
      *
      * @return int
-     * @throws Exception
+     * @throws ReleaseFlowException
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -111,6 +112,12 @@ abstract class AbstractFlowCommand extends Command
 
         if ($input->getOption('dry-run') !== false) {
             $this->getVersionControl()->setDryRun(true);
+
+            /** @var FormatterHelper $formatter */
+            $formatter = $this->getHelper('formatter');
+            $output->writeln('');
+            $output->writeln($formatter->formatBlock('Executing command with DRY-RUN', 'notice', true));
+            $output->writeln('');
         }
         return 0;
     }

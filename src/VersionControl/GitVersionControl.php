@@ -2,6 +2,7 @@
 
 namespace Hoogi91\ReleaseFlow\VersionControl;
 
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Hoogi91\ReleaseFlow\Utility\LogUtility;
 use TQ\Git\Repository\Repository;
 use TQ\Vcs\Cli\CallException;
@@ -29,11 +30,20 @@ class GitVersionControl extends AbstractVersionControl
      * GitVersionControl constructor.
      *
      * @param string $cwd
+     *
+     * @throws VersionControlException
      */
     public function __construct(string $cwd)
     {
-        $this->setWorkingDirectory($cwd);
-        $this->git = Repository::open($this->workingDirectory);
+        try {
+            $this->setWorkingDirectory($cwd);
+            $this->git = Repository::open($this->workingDirectory);
+        } catch (\InvalidArgumentException $e) {
+            throw new VersionControlException(sprintf(
+                'Git Repository couldn\'t be found in %s',
+                $this->workingDirectory
+            ));
+        }
     }
 
     /**
@@ -84,6 +94,24 @@ class GitVersionControl extends AbstractVersionControl
                 return null;
             }
         }, $tags));
+    }
+
+    /**
+     * revert all working copy changes
+     *
+     * @return bool
+     */
+    public function revertWorkingCopy()
+    {
+        try {
+            if ($this->dryRun === false) {
+                $this->git->reset();
+            }
+            return true;
+        } catch (CallException $e) {
+            LogUtility::error(sprintf('Working Copy couldn\'t be reset: %s', $e->getMessage()));
+            return false;
+        }
     }
 
     /**

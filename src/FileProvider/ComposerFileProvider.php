@@ -2,192 +2,96 @@
 
 namespace Hoogi91\ReleaseFlow\FileProvider;
 
-use Hoogi91\ReleaseFlow\Version;
-use Hoogi91\ReleaseFlow\Version\Detector\DetectorInterface;
-use InvalidArgumentException;
-use SplFileObject;
-
+use Hoogi91\ReleaseFlow\Application;
+use Hoogi91\ReleaseFlow\Composer\Configuration;
+use Hoogi91\ReleaseFlow\Exception\FileProviderException;
+use Symfony\Component\Console\Application as SymfonyApplication;
+use Version\Exception\InvalidVersionStringException;
+use Version\Version;
 
 /**
- * Helper to read/manipulate the composer file.
+ * file provider to manipulate the composer file version
  *
  * @author Thorsten Hogenkamp <hoogi20@googlemail.com>
  * @author Daniel Pozzi <bonndan76@googlemail.com>
- * @todo   replace with library
  */
-class ComposerFileProvider
+class ComposerFileProvider implements FileProviderInterface
 {
     /**
-     * composer file
-     *
-     * @var SplFileObject
+     * @var bool
      */
-    private $composerFile;
+    protected $dryRun = false;
 
     /**
-     * Constructor.
+     * sets indicator if current process shouldn't update file and keep current working copy
      *
-     * @param SplFileObject $file
+     * @return void
      */
-    public function __construct(SplFileObject $file = null)
+    public function enableDryRun()
     {
-        if ($file !== null) {
-            $this->setComposerFile($file);
-        }
+        $this->dryRun = true;
     }
 
     /**
-     * Set the path to the composer file.
+     * @param Version                        $version
+     * @param Application|SymfonyApplication $application
      *
-     * @param SplFileObject $file
-     *
-     * @throws \Liip\RMT\Exception
+     * @return bool true on successful processing and false if nothing happened
+     * @throws FileProviderException if issue occurred and file provider version bump needs to stop and rollback
      */
-    public function setComposerFile(SplFileObject $file)
+    public function process(Version $version, SymfonyApplication $application): bool
     {
-        if (!$file->isReadable()) {
-            throw new Exception("The composer file is not readable.");
-        }
-        $this->composerFile = $file;
-    }
-
-    /**
-     * Returns the project name.
-     *
-     * @return string|null
-     */
-    public function getProjectName()
-    {
-        $json = $this->getJson();
-        if (!isset($json->name)) {
-            return null;
+        // do not set/update composer.json if file doesn't exists
+        if (is_file($application->getComposer()->getFileLocation()) === false) {
+            return false;
         }
 
-        return $json->name;
-    }
-
-    /**
-     * Sets the new version
-     *
-     * @param Version $version
-     */
-    public function setVersion(Version $version)
-    {
-        $json = $this->getJson();
-        $json->version = $version->getVersion();
-        return $this->save($json);
-    }
-
-    /**
-     * Returns the current version as stored in the composer file.
-     *
-     * @return string|null
-     */
-    public function getCurrentVersion()
-    {
-        $json = $this->getJson();
-        if (!isset($json->version)) {
-            return null;
+        // do not add version if current composer.json hasn't version set
+        $composerVersion = $application->getComposer()->getVersion();
+        if (empty($composerVersion)) {
+            return false;
         }
 
-        return new Version($json->version);
-    }
-
-    /**
-     * Format a one line JSON string
-     *  Picked from here: http://php.net/manual/en/function.json-encode.php#80339
-     *
-     * @param        $json
-     * @param string $tab
-     *
-     * @return bool|string
-     */
-    public static function format($json, $tab = "   ")
-    {
-        $formatted = "";
-        $indentLevel = 0;
-        $inString = false;
-
-        // Normalized
-        $jsonObj = json_decode($json);
-        if ($jsonObj === null) {
-            throw new InvalidArgumentException("Invalid JSON string");
-        }
-        $json = json_encode($jsonObj);
-
-        // Format
-        $len = strlen($json);
-        for ($c = 0; $c < $len; $c++) {
-            $char = $json[$c];
-            switch ($char) {
-                case '{':
-                case '[':
-                    if (!$inString) {
-                        $formatted .= $char . "\n" . str_repeat($tab, $indentLevel + 1);
-                        $indentLevel++;
-                    } else {
-                        $formatted .= $char;
-                    }
-                    break;
-                case '}':
-                case ']':
-                    if (!$inString) {
-                        $indentLevel--;
-                        $formatted .= "\n" . str_repeat($tab, $indentLevel) . $char;
-                    } else {
-                        $formatted .= $char;
-                    }
-                    break;
-                case ',':
-                    if (!$inString) {
-                        $formatted .= ",\n" . str_repeat($tab, $indentLevel);
-                    } else {
-                        $formatted .= $char;
-                    }
-                    break;
-                case ':':
-                    if (!$inString) {
-                        $formatted .= ": ";
-                    } else {
-                        $formatted .= $char;
-                    }
-                    break;
-                case '"':
-                    if ($c > 0 && $json[$c - 1] != '\\') {
-                        $inString = !$inString;
-                    }
-                default:
-                    $formatted .= $char;
-                    break;
+        try {
+            $composerVersion = Version::fromString($composerVersion);
+            if ($composerVersion->isGreaterOrEqualTo($version)) {
+                throw new FileProviderException('Current composer.json version shouldn\'t be greater or equal than new version.');
             }
+
+            // add new version to composer file
+            return $this->setVersionInFile($version, $application->getComposer());
+        } catch (InvalidVersionStringException $e) {
+            throw new FileProviderException('Current composer.json version can\'t be read. Please fix this issue first!');
+        }
+    }
+
+    /**
+     * Sets the new version in composer.json
+     *
+     * @param Version       $version
+     * @param Configuration $composer
+     *
+     * @return bool
+     * @throws FileProviderException
+     */
+    protected function setVersionInFile(Version $version, Configuration $composer)
+    {
+        if ($this->dryRun !== false) {
+            return true;
         }
 
-        return $formatted;
-    }
+        // update composer version in config
+        $json = $composer->getConfig();
+        $json['version'] = $version->getVersionString();
 
-
-    /**
-     * Returns the decoded json.
-     *
-     * @return object
-     */
-    private function getJson()
-    {
-        return json_decode(file_get_contents($this->composerFile->getPathname()));
-    }
-
-    /**
-     * Saves the json object back to the composer file.
-     *
-     * @param object $json
-     *
-     * @return string the serialized content
-     */
-    private function save($json)
-    {
-        $serialized = self::format(json_encode($json));
-        $fixed = str_replace('"_empty_":', '"":', $serialized);
-        file_put_contents($this->composerFile->getPathname(), $fixed);
-        return $serialized;
+        // try to save new composer.json pretty printed
+        $bytesWritten = file_put_contents(
+            $composer->getFileLocation(),
+            json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+        if ($bytesWritten === false) {
+            throw new FileProviderException('Writing composer.json with new version failed.');
+        }
+        return true;
     }
 }

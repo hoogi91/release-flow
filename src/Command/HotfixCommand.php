@@ -2,7 +2,7 @@
 
 namespace Hoogi91\ReleaseFlow\Command;
 
-use Hoogi91\ReleaseFlow\Exception;
+use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -29,7 +29,7 @@ class HotfixCommand extends AbstractFlowCommand
      * @param OutputInterface $output
      *
      * @return int
-     * @throws Exception
+     * @throws ReleaseFlowException
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {

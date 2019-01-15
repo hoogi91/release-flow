@@ -2,7 +2,7 @@
 
 namespace Hoogi91\ReleaseFlow\VersionControl;
 
-use Hoogi91\ReleaseFlow\Exception;
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Version\Version;
 
 /**
@@ -61,6 +61,13 @@ interface VersionControlInterface
     public function hasLocalModifications();
 
     /**
+     * revert all working copy changes
+     *
+     * @return bool
+     */
+    public function revertWorkingCopy();
+
+    /**
      * Save the local modifications (commit)
      *
      * @param $commitMsg
@@ -88,7 +95,7 @@ interface VersionControlInterface
      *
      * @param boolean $publish whether to publish to $ORIGIN after finishing
      *
-     * @throws Exception
+     * @throws VersionControlException
      */
     public function finishRelease(bool $publish = false);
 
@@ -111,7 +118,7 @@ interface VersionControlInterface
      *
      * @param boolean $publish whether to publish to $ORIGIN after finishing
      *
-     * @throws Exception
+     * @throws VersionControlException
      */
     public function finishHotfix(bool $publish = false);
 }
