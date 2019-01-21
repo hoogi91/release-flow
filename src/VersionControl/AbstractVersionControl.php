@@ -77,6 +77,27 @@ abstract class AbstractVersionControl implements VersionControlInterface
     }
 
     /**
+     * Return array list of all branches
+     *
+     * @return array
+     */
+    abstract public function getBranches();
+
+    /**
+     * Return the current branch
+     *
+     * @return string
+     */
+    abstract public function getCurrentBranch();
+
+    /**
+     * Return all tags of the project
+     *
+     * @return Version[]
+     */
+    abstract public function getTags();
+
+    /**
      * @param string $command
      *
      * @return bool

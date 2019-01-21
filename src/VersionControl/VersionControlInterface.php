@@ -11,7 +11,24 @@ use Version\Version;
  */
 interface VersionControlInterface
 {
+
     /**
+     * set working directory of repository where commands should be executed
+     *
+     * @param string $workingDirectory
+     */
+    public function setWorkingDirectory(string $workingDirectory);
+
+    /**
+     * set dry-run indicator to prevent execution of version control commands
+     *
+     * @param boolean $flag
+     */
+    public function setDryRun(bool $flag);
+
+    /**
+     * check if current command can be processed by this version control system type
+     *
      * @param string $command
      *
      * @return boolean

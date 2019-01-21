@@ -3,7 +3,6 @@
 namespace Hoogi91\ReleaseFlow\Command;
 
 use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
-use Hoogi91\ReleaseFlow\VersionControl\AbstractVersionControl;
 use Hoogi91\ReleaseFlow\VersionControl\VersionControlInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\FormatterHelper;
@@ -40,7 +39,7 @@ abstract class AbstractFlowCommand extends Command
     /**
      * The version control
      *
-     * @var AbstractVersionControl
+     * @var VersionControlInterface
      */
     protected $versionControl;
 
@@ -61,9 +60,9 @@ abstract class AbstractFlowCommand extends Command
     }
 
     /**
-     * @return AbstractVersionControl
+     * @return VersionControlInterface
      */
-    public function getVersionControl(): AbstractVersionControl
+    public function getVersionControl(): VersionControlInterface
     {
         return $this->versionControl;
     }
