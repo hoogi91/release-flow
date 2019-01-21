@@ -3,7 +3,6 @@
 namespace Hoogi91\ReleaseFlow\Command;
 
 use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
-use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -13,7 +12,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * @author Thorsten Hogenkamp <hoogi20@googlemail.com>
  * @author Daniel Pozzi <bonndan76@googlemail.com>
  */
-class HotfixCommand extends AbstractFlowCommand
+class HotfixCommand extends AbstractFlowStartCommand
 {
     /**
      * creates a hotfix branch with a patch version increment
@@ -38,12 +37,10 @@ class HotfixCommand extends AbstractFlowCommand
             return $result;
         }
 
-        /** @var QuestionHelper $helper */
-        $helper = $this->getHelper('question');
-
         // get next patch version and ask user if new version is correctly set
         $nextVersion = $this->getNextVersion(self::PATCH);
-        if ($helper->ask($input, $output, $this->getNextVersionConfirmation($nextVersion))) {
+
+        if ($this->confirmNextVersion($nextVersion) === true) {
             // start version control hotfix branch if confirmed
             $output->writeln($this->versionControl->startHotfix($nextVersion));
         }

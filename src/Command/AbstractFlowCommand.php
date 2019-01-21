@@ -10,8 +10,6 @@ use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ConfirmationQuestion;
-use Version\Version;
 
 /**
  * Base command
@@ -28,9 +26,39 @@ abstract class AbstractFlowCommand extends Command
     /**
      * The version control
      *
+     * @var InputInterface
+     */
+    protected $input;
+
+    /**
+     * The version control
+     *
+     * @var OutputInterface
+     */
+    protected $output;
+
+    /**
+     * The version control
+     *
      * @var AbstractVersionControl
      */
     protected $versionControl;
+
+    /**
+     * @return InputInterface
+     */
+    public function getInput(): InputInterface
+    {
+        return $this->input;
+    }
+
+    /**
+     * @return OutputInterface
+     */
+    public function getOutput(): OutputInterface
+    {
+        return $this->output;
+    }
 
     /**
      * @return AbstractVersionControl
@@ -51,40 +79,6 @@ abstract class AbstractFlowCommand extends Command
     }
 
     /**
-     * @param string $incrementType
-     *
-     * @return Version
-     */
-    protected function getNextVersion(string $incrementType = self::PATCH)
-    {
-        $currentVersion = $this->versionControl->getCurrentVersion();
-        if ($incrementType === self::MAJOR) {
-            return $currentVersion->incrementMajor();
-        } elseif ($incrementType === self::MINOR) {
-            return $currentVersion->incrementMinor();
-        }
-        return $currentVersion->incrementPatch();
-    }
-
-    /**
-     * @param Version|string $incrementTypeOrVersion
-     *
-     * @return ConfirmationQuestion
-     */
-    protected function getNextVersionConfirmation($incrementTypeOrVersion = self::PATCH)
-    {
-        // allow increment type or version object
-        $version = $incrementTypeOrVersion;
-        if (!$incrementTypeOrVersion instanceof Version) {
-            $version = $this->getNextVersion($incrementTypeOrVersion);
-        }
-        return new ConfirmationQuestion(sprintf(
-            '<question>The next version will be %s. Do you agree? [Y/n]</question>',
-            $version->getVersionString()
-        ));
-    }
-
-    /**
      * creates a release branch with version increment
      */
     protected function configure()
@@ -101,6 +95,9 @@ abstract class AbstractFlowCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->input = $input;
+        $this->output = $output;
+
         if ($this->getVersionControl()->canProcessCommand(get_class($this)) === false) {
             $output->writeln(sprintf(
                 '<error>%s could not be executed with version control %s</error>',
