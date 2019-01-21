@@ -3,7 +3,8 @@
   become: true
   vars:
     php_default_version_debian: '7.2'
-    php_packages_extra: ['php7.2-zip']
+    php_enable_webserver: false
+    php_packages_extra: ['php7.2-bcmath', 'php7.2-zip']
   pre_tasks:
     - name: update apt cache
       apt: update_cache=yes cache_valid_time=3600
@@ -15,3 +16,9 @@
       shell: composer install
       args:
         chdir: /vagrant
+    - name: allow PHAR creation on CLI
+      blockinfile:
+        path: /etc/php/7.2/cli/php.ini
+        block: |
+          # enable phar creation on CLI
+          phar.readonly = 0

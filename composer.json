@@ -22,7 +22,8 @@
   },
   "require-dev": {
     "squizlabs/php_codesniffer": "^3.0",
-    "phpunit/phpunit": "^6.0"
+    "phpunit/phpunit": "^6.0",
+    "macfja/phar-builder": "^0.2.8"
   },
   "suggest": {
     "git-flow": "*"
@@ -37,11 +38,36 @@
       "Hoogi91\\ReleaseFlow\\Tests\\": "tests/"
     }
   },
-  "config": {
-    "vendor-dir": "vendor",
-    "bin-dir": "bin"
-  },
   "bin": [
     "bin/release-flow"
-  ]
+  ],
+  "scripts": {
+    "build": [
+      "vendor/bin/phar-builder package composer.json"
+    ]
+  },
+  "extra": {
+    "phar-builder": {
+      "compression": "GZip",
+      "name": "release-flow.phar",
+      "output-dir": "dist",
+      "entry-point": "bin/release-flow",
+      "include": [
+        "bin",
+        "src"
+      ],
+      "include-dev": false,
+      "skip-shebang": false,
+      "events": {
+        "command.package.start": [
+          "rm -rf dist/release-flow.phar",
+          "rm -rf dist/release-flow-$(date +%Y%m%d).phar"
+        ],
+        "command.package.end": [
+          "chmod +x dist/release-flow.phar",
+          "mv dist/release-flow.phar dist/release-flow-$(date +%Y%m%d).phar"
+        ]
+      }
+    }
+  }
 }
