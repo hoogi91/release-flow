@@ -4,6 +4,7 @@ namespace Hoogi91\ReleaseFlow\VersionControl;
 
 use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Hoogi91\ReleaseFlow\Utility\LogUtility;
+use Symfony\Component\Console\Output\OutputInterface;
 use TQ\Git\Repository\Repository;
 use TQ\Vcs\Cli\CallException;
 use TQ\Vcs\Cli\CallResult;
@@ -104,8 +105,10 @@ class GitVersionControl extends AbstractVersionControl
     public function revertWorkingCopy()
     {
         try {
-            if ($this->dryRun === false) {
+            if (!$this->dryRun instanceof OutputInterface) {
                 $this->git->reset();
+            } else {
+                $this->dryRun->writeln(sprintf('<error>DRY-RUN</error> <info>Working Copy changes will be reverted!'));
             }
             return true;
         } catch (CallException $e) {
@@ -122,9 +125,14 @@ class GitVersionControl extends AbstractVersionControl
     public function saveWorkingCopy(string $commitMsg = '')
     {
         try {
-            if ($this->dryRun === false) {
+            if (!$this->dryRun instanceof OutputInterface) {
                 $this->git->add();
                 $this->git->commit($commitMsg);
+            } else {
+                $this->dryRun->writeln(sprintf(
+                    '<error>DRY-RUN</error> <info>Working Copy changes will be committed with message "%s"',
+                    $commitMsg
+                ));
             }
             return true;
         } catch (CallException $e) {

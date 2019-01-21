@@ -2,11 +2,14 @@
 
 namespace Hoogi91\ReleaseFlow\VersionControl;
 
+use Hoogi91\ReleaseFlow\Command\DevelopCommand;
 use Hoogi91\ReleaseFlow\Command\FinishCommand;
 use Hoogi91\ReleaseFlow\Command\HotfixCommand;
 use Hoogi91\ReleaseFlow\Command\StartCommand;
+use Hoogi91\ReleaseFlow\Command\StatusCommand;
 use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Hoogi91\ReleaseFlow\Utility\LogUtility;
+use Symfony\Component\Console\Output\OutputInterface;
 use Version\Exception\InvalidVersionStringException;
 use Version\Version;
 
@@ -44,8 +47,10 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * list of allowed commands by version control
      */
     const ALLOWED_COMMANDS = [
+        StatusCommand::class,
         StartCommand::class,
         HotfixCommand::class,
+        DevelopCommand::class,
         FinishCommand::class,
     ];
 
@@ -56,9 +61,9 @@ abstract class AbstractVersionControl implements VersionControlInterface
 
     /**
      * dry-run: do nothing
-     * @var boolean
+     * @var OutputInterface
      */
-    protected $dryRun = false;
+    protected $dryRun = null;
 
     /**
      * @param string $workingDirectory
@@ -69,11 +74,11 @@ abstract class AbstractVersionControl implements VersionControlInterface
     }
 
     /**
-     * @param boolean $flag
+     * @param OutputInterface $output
      */
-    public function setDryRun(bool $flag)
+    public function setDryRun(?OutputInterface $output)
     {
-        $this->dryRun = $flag;
+        $this->dryRun = $output;
     }
 
     /**
@@ -125,6 +130,14 @@ abstract class AbstractVersionControl implements VersionControlInterface
                     'You are not in a flow release/hotfix branch (current: %s). Please switch into a flow branch: %s',
                     $this->getCurrentBranch(),
                     implode(', ', $releaseOrHotfixBranch)
+                ));
+            }
+        } elseif ($command === DevelopCommand::class) {
+            if ($this->getCurrentBranch() !== 'develop') {
+                // you need to be in develop branch
+                throw new VersionControlException(sprintf(
+                    'You need to be in develop branch but current branch is: %s',
+                    $this->getCurrentBranch()
                 ));
             }
         } elseif (in_array($command, [StartCommand::class, HotfixCommand::class])) {
@@ -326,7 +339,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
             return '<error>No command given! Nothing to do...</error>';
         }
 
-        if ($this->dryRun !== false) {
+        if ($this->dryRun instanceof OutputInterface) {
             return sprintf(
                 "<error>DRY-RUN</error> <info>the following commands will be executed:</info>\n<fg=cyan>> %s</>",
                 implode(PHP_EOL . '> ', $commands)

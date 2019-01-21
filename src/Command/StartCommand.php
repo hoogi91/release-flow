@@ -15,7 +15,7 @@ use Symfony\Component\Console\Question\ChoiceQuestion;
  * @author Thorsten Hogenkamp <hoogi20@googlemail.com>
  * @author Daniel Pozzi <bonndan76@googlemail.com>
  */
-class StartCommand extends AbstractFlowStartCommand
+class StartCommand extends AbstractFlowIncrementCommand
 {
 
     /**

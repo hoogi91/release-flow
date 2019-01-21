@@ -3,7 +3,7 @@
 namespace Hoogi91\ReleaseFlow\FileProvider;
 
 use Hoogi91\ReleaseFlow\Application;
-use Hoogi91\ReleaseFlow\Composer\Configuration;
+use Hoogi91\ReleaseFlow\Configuration\Composer;
 use Hoogi91\ReleaseFlow\Exception\FileProviderException;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Version\Exception\InvalidVersionStringException;
@@ -68,13 +68,13 @@ class ComposerFileProvider implements FileProviderInterface
     /**
      * Sets the new version in composer.json
      *
-     * @param Version       $version
-     * @param Configuration $composer
+     * @param Version  $version
+     * @param Composer $composer
      *
      * @return bool
      * @throws FileProviderException
      */
-    protected function setVersionInFile(Version $version, Configuration $composer)
+    protected function setVersionInFile(Version $version, Composer $composer)
     {
         if ($this->dryRun !== false) {
             return true;

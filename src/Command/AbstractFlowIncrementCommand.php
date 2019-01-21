@@ -8,11 +8,11 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Version\Version;
 
 /**
- * Base command
+ * Base command for version increment jobs
  *
  * @author Thorsten Hogenkamp <hoogi20@googlemail.com>
  */
-abstract class AbstractFlowStartCommand extends AbstractFlowCommand
+abstract class AbstractFlowIncrementCommand extends AbstractFlowCommand
 {
 
     /**

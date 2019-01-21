@@ -12,7 +12,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * @author Thorsten Hogenkamp <hoogi20@googlemail.com>
  * @author Daniel Pozzi <bonndan76@googlemail.com>
  */
-class HotfixCommand extends AbstractFlowStartCommand
+class HotfixCommand extends AbstractFlowIncrementCommand
 {
     /**
      * creates a hotfix branch with a patch version increment

@@ -3,10 +3,12 @@
 namespace Hoogi91\ReleaseFlow;
 
 use Hoogi91\ReleaseFlow\Command\AbstractFlowCommand;
+use Hoogi91\ReleaseFlow\Command\DevelopCommand;
 use Hoogi91\ReleaseFlow\Command\FinishCommand;
 use Hoogi91\ReleaseFlow\Command\HotfixCommand;
 use Hoogi91\ReleaseFlow\Command\StartCommand;
-use Hoogi91\ReleaseFlow\Composer\Configuration;
+use Hoogi91\ReleaseFlow\Command\StatusCommand;
+use Hoogi91\ReleaseFlow\Configuration\Composer;
 use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
 use Hoogi91\ReleaseFlow\VersionControl\VersionControlInterface;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
@@ -35,7 +37,7 @@ class Application extends \Symfony\Component\Console\Application
     /**
      * holds composer configuration
      *
-     * @var Configuration
+     * @var Composer
      */
     protected $composer;
 
@@ -52,7 +54,7 @@ class Application extends \Symfony\Component\Console\Application
             $workingDirectory = getcwd();
 
             // read composer.json file configuration for usage
-            $this->composer = new Configuration($workingDirectory);
+            $this->composer = new Composer($workingDirectory);
 
             // build version control class from composer settings
             $versionControlClass = $this->composer->getVersionControlClass();
@@ -63,7 +65,7 @@ class Application extends \Symfony\Component\Console\Application
     }
 
     /**
-     * @return Configuration
+     * @return Composer
      */
     public function getComposer()
     {
@@ -123,8 +125,10 @@ class Application extends \Symfony\Component\Console\Application
         $outputStyle = new OutputFormatterStyle('black', 'yellow', ['bold']);
         $output->getFormatter()->setStyle('notice', $outputStyle);
 
+        $this->addCommand(StatusCommand::class);
         $this->addCommand(StartCommand::class);
         $this->addCommand(HotfixCommand::class);
+        $this->addCommand(DevelopCommand::class);
         $this->addCommand(FinishCommand::class);
         return parent::run($input, $output);
     }

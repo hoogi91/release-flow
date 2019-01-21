@@ -1,15 +1,15 @@
 <?php
 
-namespace Hoogi91\ReleaseFlow\Composer;
+namespace Hoogi91\ReleaseFlow\Configuration;
 
 use Hoogi91\ReleaseFlow\Exception\ComposerException;
 use Hoogi91\ReleaseFlow\VersionControl\GitVersionControl;
 
 /**
- * Class Configuration
- * @package Hoogi91\ReleaseFlow\Composer
+ * Class Composer
+ * @package Hoogi91\ReleaseFlow\Configuration
  */
-class Configuration
+class Composer
 {
     /**
      * @var string
@@ -22,7 +22,7 @@ class Configuration
     protected $configuration = [];
 
     /**
-     * Configuration constructor.
+     * Composer constructor.
      *
      * @param string $workingDirectory
      *

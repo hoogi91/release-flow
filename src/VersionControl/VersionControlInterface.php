@@ -3,6 +3,7 @@
 namespace Hoogi91\ReleaseFlow\VersionControl;
 
 use Hoogi91\ReleaseFlow\Exception\VersionControlException;
+use Symfony\Component\Console\Output\OutputInterface;
 use Version\Version;
 
 /**
@@ -22,9 +23,9 @@ interface VersionControlInterface
     /**
      * set dry-run indicator to prevent execution of version control commands
      *
-     * @param boolean $flag
+     * @param OutputInterface $output
      */
-    public function setDryRun(bool $flag);
+    public function setDryRun(OutputInterface $output);
 
     /**
      * check if current command can be processed by this version control system type

@@ -107,7 +107,7 @@ abstract class AbstractFlowCommand extends Command
         }
 
         if ($input->getOption('dry-run') !== false) {
-            $this->getVersionControl()->setDryRun(true);
+            $this->getVersionControl()->setDryRun($output);
 
             /** @var FormatterHelper $formatter */
             $formatter = $this->getHelper('formatter');

@@ -2,18 +2,14 @@
 
 namespace Hoogi91\ReleaseFlow\Command;
 
-use Hoogi91\ReleaseFlow\Application;
-use Hoogi91\ReleaseFlow\Exception\FileProviderException;
 use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
-use Hoogi91\ReleaseFlow\FileProvider\ComposerFileProvider;
-use Hoogi91\ReleaseFlow\FileProvider\FileProviderInterface;
+use Hoogi91\ReleaseFlow\Service\FileProviderService;
 use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
-use Version\Version;
 
 /**
  * This commands finishes a regular release or hotfix branch
@@ -91,28 +87,19 @@ class FinishCommand extends AbstractFlowCommand
 
         if ($helper->ask($input, $output, $confirm)) {
             // execute version file providers to set flow version in additional files
-            $fileProviderResults = $this->executeVersionFileProviders($newVersion, $input->getOption('dry-run'));
+            $fileProviderService = new FileProviderService($this->getApplication(), $this->getVersionControl());
+            $fileProviderService->process($newVersion, $input->getOption('dry-run'));
 
             // print which file providers have been executed before bumping version
-            if (!empty($fileProviderResults)) {
-                $messages = array_map(function ($providerClass, $success) {
-                    return sprintf('  [%s] %s', ($success ? 'CHANGE' : 'SKIP'), $providerClass);
-                }, array_keys($fileProviderResults), $fileProviderResults);
+            $fileProviderService->printResults($output);
 
-                // add short explanation message before list
-                array_unshift(
-                    $messages,
-                    'The following file providers have been executed and may have changed some files:'
-                );
-
-                // print status of executed and not executed file providers
-                $output->writeln('');
-                $output->writeln($formatter->formatBlock($messages, 'notice', true));
-                $output->writeln('');
+            // commit changes to version control before finishing release/hotfix
+            if ($this->getVersionControl()->hasLocalModifications() === true) {
+                $this->getVersionControl()->saveWorkingCopy(sprintf(
+                    'Bump version to %s',
+                    $newVersion->getVersionString()
+                ));
             }
-
-            // commit changes to version control before finishing hotfix
-            $this->getVersionControl()->saveWorkingCopy(sprintf('Bump version to %s', $newVersion->getVersionString()));
 
             // finish hotfix and publish it if user accepts
             if ($this->getVersionControl()->isHotfix()) {
@@ -147,60 +134,5 @@ class FinishCommand extends AbstractFlowCommand
             return $this->getCommitMessage($input, $output);
         }
         return $commitMessage;
-    }
-
-    /**
-     * execute list of additional file providers
-     *
-     * @param Version $branchVersion
-     * @param bool    $dryRun
-     *
-     * @return array
-     * @throws ReleaseFlowException
-     */
-    protected function executeVersionFileProviders(Version $branchVersion, bool $dryRun = false)
-    {
-        try {
-            /** @var Application $application */
-            $application = $this->getApplication();
-
-            // get provider list with composer file provider first
-            $providers = [];
-            $providers[] = ComposerFileProvider::class;
-            array_push($providers, ...$application->getComposer()->getProviderClasses());
-            if (empty($providers)) {
-                return [];
-            }
-
-            // iterate all providers that implement provider interface
-            $results = [];
-            foreach (array_unique($providers) as $provider) {
-                if (
-                    class_exists($provider) === false ||
-                    in_array(FileProviderInterface::class, class_implements($provider)) === false
-                ) {
-                    continue;
-                }
-
-                // save provider result (has done something or not) in result
-                /** @var FileProviderInterface $providerInstance */
-                $providerInstance = new $provider();
-                if ($dryRun !== false) {
-                    $providerInstance->enableDryRun();
-                }
-                $results[$provider] = $providerInstance->process($branchVersion, $this->getApplication());
-            }
-            return $results;
-        } catch (FileProviderException $exception) {
-            // revert working copy
-            $this->getVersionControl()->revertWorkingCopy();
-
-            // throw new exception to break processing
-            throw new ReleaseFlowException(
-                'Executing Version File Providers failed! All changes of file providers were reverted.',
-                1547566637,
-                $exception
-            );
-        }
     }
 }
