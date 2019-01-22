@@ -21,7 +21,10 @@ class DevelopCommand extends AbstractFlowIncrementCommand
     protected function configure()
     {
         parent::configure();
-        $this->setName('develop')->setDescription('add dev flag to current version on develop branch');
+        $this->setName('dev')->setAliases([
+            'develop',
+            'development',
+        ])->setDescription('add dev flag to current version on develop branch');
     }
 
     /**

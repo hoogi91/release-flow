@@ -20,7 +20,10 @@ class HotfixCommand extends AbstractFlowIncrementCommand
     protected function configure()
     {
         parent::configure();
-        $this->setName('hotfix')->setDescription('creates a hotfix branch with a patch version increment');
+        $this->setName('hotfix')->setAliases([
+            'hot',
+            'fix',
+        ])->setDescription('creates a hotfix branch with a patch version increment');
     }
 
     /**
