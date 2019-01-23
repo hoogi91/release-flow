@@ -4,7 +4,6 @@ namespace Hoogi91\ReleaseFlow\Command;
 
 use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
 use Hoogi91\ReleaseFlow\Service\FileProviderService;
-use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -47,9 +46,6 @@ class FinishCommand extends AbstractFlowCommand
 
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
-
-        /** @var FormatterHelper $formatter */
-        $formatter = $this->getHelper('formatter');
 
         // check if repository has local modifications that needs to be committed first
         if ($this->getVersionControl()->hasLocalModifications() === true) {
@@ -103,9 +99,9 @@ class FinishCommand extends AbstractFlowCommand
 
             // finish hotfix and publish it if user accepts
             if ($this->getVersionControl()->isHotfix()) {
-                $output->writeln($this->versionControl->finishHotfix($helper->ask($input, $output, $publish)));
+                $output->writeln($this->getVersionControl()->finishHotfix($helper->ask($input, $output, $publish)));
             } else {
-                $output->writeln($this->versionControl->finishRelease($helper->ask($input, $output, $publish)));
+                $output->writeln($this->getVersionControl()->finishRelease($helper->ask($input, $output, $publish)));
             }
         }
 
