@@ -3,57 +3,181 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\Command;
 
 use Hoogi91\ReleaseFlow\Command\StartCommand;
-use Hoogi91\ReleaseFlow\Version;
+use Symfony\Component\Console\Helper\QuestionHelper;
+use Version\Version;
 
 /**
- * Tests the start command.
- * 
- * 
+ * Class StartCommandTest
+ * @package Hoogi91\ReleaseFlow\Tests\Unit\Command
  */
 class StartCommandTest extends CommandTest
 {
+
     /**
-     * system under test
-     * @var StartCommand
+     * setup command class
      */
-    private $command;
-    
-    public function setUp()
+    public function getCommandClass()
     {
-        parent::setUp();
-        $this->command = new StartCommand();
-        $this->command->setReleaseFlowDependencies($this->flow, $this->vcs, $this->composerFile);
-        $this->simulateHelperSet($this->command);
+        return StartCommand::class;
     }
-    
-    public function testThrowsExceptionIfInTheFlow()
-    {
-        $this->flow->expects($this->once())
-                ->method('isInTheFlow')
-                ->will($this->returnValue(true));
-        
-        $this->setExpectedException("\Hoogi91\ReleaseFlow\Exception");
-        $this->command->run($this->input, $this->output);
-    }
-    
-    public function testStartsRelease()
+
+    /**
+     * @test
+     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
+     */
+    public function testThrowsExceptionIfActiveFlowExists()
     {
         $this->vcs->expects($this->once())
-                ->method('getCurrentVersion')
-                ->will($this->returnValue(new Version('0.1.2')));
-        $this->dialog->expects($this->once())
-                ->method('select')
-                ->will($this->returnValue(Version::TYPE_MINOR));
-        $this->vcs->expects($this->once())
-                ->method('startRelease')
-                ->will($this->returnCallback(array($this, 'startReleaseCallback')));
-        
-        
+            ->method('getBranches')
+            ->willReturn(['master', 'develop', 'release/1.0.3']);
+
+        $this->vcs->expects($this->atLeastOnce())
+            ->method('getCurrentBranch')
+            ->willReturn('develop');
+
         $this->command->run($this->input, $this->output);
     }
-    
-    public function startReleaseCallback(Version $version)
+
+    /**
+     * @test
+     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
+     */
+    public function testThrowsExceptionIfAlreadyInTheFlow()
     {
-        $this->assertEquals('0.2.0', $version->getVersion());
+        $this->vcs->expects($this->once())
+            ->method('getBranches')
+            ->willReturn(['master', 'develop', 'release/1.0.3']);
+
+        $this->vcs->expects($this->atLeastOnce())
+            ->method('getCurrentBranch')
+            ->willReturn('release/1.0.3');
+
+        $this->command->run($this->input, $this->output);
+    }
+
+    /**
+     * @test
+     */
+    public function testStartsMinorRelease()
+    {
+        $this->setOptionValues([
+            'dry-run' => true,
+            'force'   => false,
+        ]);
+
+        // set current tagged version to 2.3.4
+        $this->vcs->method('getTags')->willReturn([
+            Version::fromString('2.3.4'),
+        ]);
+
+        // allow to create new release branch
+        $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
+        $this->vcs->expects($this->atLeastOnce())->method('getCurrentBranch')->willReturn('develop');
+
+        /** @var QuestionHelper|\PHPUnit_Framework_MockObject_MockObject $questionHelper */
+        $questionHelper = $this->helperSet->get('question');
+
+        // confirm first ask to create minor release and second confirm new version
+        $questionHelper->expects($this->at(0))->method('ask')->willReturn('minor');
+        $questionHelper->expects($this->at(1))->method('ask')->willReturn(true);
+
+        // check if finish release commands are executed
+        $this->vcs->expects($this->once())
+            ->method('executeCommands')
+            ->willReturnCallback([$this, 'validateStartMinorReleaseCommands']);
+
+        $this->command->run($this->input, $this->output);
+    }
+
+    /**
+     * @test
+     */
+    public function testStartsMajorReleaseWithArgument()
+    {
+        $this->setOptionValues([
+            'dry-run'   => true,
+            'increment' => 'major',
+            'force'     => false,
+        ]);
+
+        // make sure that increment option will be read from options
+        $this->input->expects($this->once())->method('hasOption')->with($this->equalTo('increment'))->willReturn(true);
+
+        // set current tagged version to 2.3.4
+        $this->vcs->method('getTags')->willReturn([
+            Version::fromString('2.3.4'),
+        ]);
+
+        // allow to create new release branch
+        $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
+        $this->vcs->expects($this->atLeastOnce())->method('getCurrentBranch')->willReturn('develop');
+
+        /** @var QuestionHelper|\PHPUnit_Framework_MockObject_MockObject $questionHelper */
+        $questionHelper = $this->helperSet->get('question');
+
+        // confirm new release version number
+        $questionHelper->expects($this->exactly(1))->method('ask')->willReturn(true);
+
+        // check if finish release commands are executed
+        $this->vcs->expects($this->once())
+            ->method('executeCommands')
+            ->willReturnCallback([$this, 'validateStartMajorReleaseCommands']);
+
+        $this->command->run($this->input, $this->output);
+    }
+
+    /**
+     * @test
+     */
+    public function testStartsMajorReleaseForce()
+    {
+        $this->setOptionValues([
+            'dry-run'   => true,
+            'increment' => 'major',
+            'force'     => true,
+        ]);
+
+        // make sure that increment option will be read from options
+        $this->input->expects($this->once())->method('hasOption')->with($this->equalTo('increment'))->willReturn(true);
+
+        // set current tagged version to 2.3.4
+        $this->vcs->method('getTags')->willReturn([
+            Version::fromString('2.3.4'),
+        ]);
+
+        // allow to create new release branch
+        $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
+        $this->vcs->expects($this->atLeastOnce())->method('getCurrentBranch')->willReturn('develop');
+
+        /** @var QuestionHelper|\PHPUnit_Framework_MockObject_MockObject $questionHelper */
+        $questionHelper = $this->helperSet->get('question');
+
+        // check that ask method isn't executed
+        $questionHelper->expects($this->never())->method('ask');
+
+        // check if finish release commands are executed
+        $this->vcs->expects($this->once())
+            ->method('executeCommands')
+            ->willReturnCallback([$this, 'validateStartMajorReleaseCommands']);
+
+        $this->command->run($this->input, $this->output);
+    }
+
+    public function validateStartMinorReleaseCommands($commands)
+    {
+        $this->assertInternalType('array', $commands);
+        $this->assertCount(1, $commands);
+
+        // check if commands are in correct order and have no issues
+        $this->assertEquals('git checkout -b release/2.4.0 develop', $commands[0]);
+    }
+
+    public function validateStartMajorReleaseCommands($commands)
+    {
+        $this->assertInternalType('array', $commands);
+        $this->assertCount(1, $commands);
+
+        // check if commands are in correct order and have no issues
+        $this->assertEquals('git checkout -b release/3.0.0 develop', $commands[0]);
     }
 }

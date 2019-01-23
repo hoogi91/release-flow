@@ -1,49 +1,100 @@
 <?php
+
 namespace Hoogi91\ReleaseFlow\Tests\Unit\Command;
 
-use PHPUnit_Framework_TestCase;
-use Symfony\Component\Console\Command\Command;
+use Hoogi91\ReleaseFlow\Application;
+use Hoogi91\ReleaseFlow\Command\AbstractFlowCommand;
+use Hoogi91\ReleaseFlow\VersionControl\GitVersionControl;
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Helper\HelperSet;
+use Symfony\Component\Console\Helper\QuestionHelper;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Base class for command tests.
- * 
- * 
+ * Class CommandTest
+ * @package Hoogi91\ReleaseFlow\Tests\Unit\Command
  */
-abstract class CommandTest extends PHPUnit_Framework_TestCase
+abstract class CommandTest extends TestCase
 {
+    /**
+     * @var InputInterface|\PHPUnit_Framework_MockObject_MockObject
+     */
     protected $input;
-    
+
+    /**
+     * @var OutputInterface|\PHPUnit_Framework_MockObject_MockObject
+     */
     protected $output;
-    
-    protected $dialog;
-    
-    protected $flow;
-    
+
+    /**
+     * @var GitVersionControl|\PHPUnit_Framework_MockObject_MockObject
+     */
     protected $vcs;
-    
-    protected $composerFile;
-    
+
+    /**
+     * @var HelperSet
+     */
+    protected $helperSet;
+
+    /**
+     * @var Application
+     */
+    protected $application;
+
+    /**
+     * @var AbstractFlowCommand
+     */
+    protected $command;
+
+    /**
+     * default setup of mock objects etc
+     */
     public function setUp()
     {
-        $this->input = $this->getMock("\Symfony\Component\Console\Input\InputInterface");
-        $this->output = $this->getMock("\Symfony\Component\Console\Output\OutputInterface");
-        $this->flow = $this->getMockBuilder("\Hoogi91\ReleaseFlow\Version\Detector\GitFlowBranch")
-                ->disableOriginalConstructor()
-                ->getMock();
-        $this->composerFile = $this->getMockBuilder("\Hoogi91\ReleaseFlow\Version\ComposerFile")
-                ->disableOriginalConstructor()
-                ->getMock();
-        $this->vcs = $this->getMock("\Hoogi91\ReleaseFlow\VersionControl\VersionControlInterface");
+        $this->output = $this->getMockBuilder(OutputInterface::class)->getMock();
+        $this->input = $this->getMockBuilder(InputInterface::class)->getMock();
+        $this->vcs = $this->getMockBuilder(GitVersionControl::class)
+            ->disableOriginalConstructor()
+            ->setMethods([
+                'executeCommands',
+                'getBranches',
+                'getCurrentBranch',
+                'hasLocalModifications',
+                'getTags',
+                'revertWorkingCopy',
+                'saveWorkingCopy',
+            ])
+            ->getMock();
+
+        $commandClass = $this->getCommandClass();
+        $this->command = new $commandClass();
+        $this->command->setApplication($this->application);
+        $this->command->setVersionControl($this->vcs);
+
+        // create application with helper set and assign to command
+        $this->helperSet = new HelperSet([
+            'formatter' => $this->getMockBuilder(FormatterHelper::class)->getMock(),
+            'question'  => $this->getMockBuilder(QuestionHelper::class)->getMock(),
+        ]);
+        $this->application = $this->getMockBuilder(Application::class)->setMethods(['getHelperSet'])->getMock();
+        $this->application->method('getHelperSet')->willReturn($this->helperSet);
+        $this->command->setApplication($this->application);
     }
-    
-    public function simulateHelperSet(Command $command)
+
+    /**
+     * @param array $options
+     */
+    protected function setOptionValues($options = [])
     {
-        $this->dialog = $this->getMock("Symfony\Component\Console\Helper\DialogHelper");
-        $helpers = array(
-            'dialog' => $this->dialog,
-        );
-        $helperSet = new HelperSet($helpers);
-        $command->setHelperSet($helperSet);
+        $this->input->method('getOption')->willReturnCallback(function ($option) use ($options) {
+            return $options[$option] ?? false;
+        });
     }
+
+    /**
+     * @return string
+     */
+    abstract public function getCommandClass();
 }
