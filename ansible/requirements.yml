@@ -1,2 +1,3 @@
 - src: geerlingguy.php
+- src: geerlingguy.php-xdebug
 - src: geerlingguy.composer

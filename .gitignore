@@ -1,5 +1,6 @@
 .idea/
 .vagrant/
 dist/
+tests/reports/
 vendor/
 composer.lock
