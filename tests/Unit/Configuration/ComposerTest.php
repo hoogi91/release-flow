@@ -1,13 +1,13 @@
 <?php
 
-namespace Hoogi91\ReleaseFlow\Tests\Configuration;
+namespace Hoogi91\ReleaseFlow\Tests\Unit\Configuration;
 
 use Hoogi91\ReleaseFlow\Configuration\Composer;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Class ComposerTest
- * @package Hoogi91\ReleaseFlow\Tests\Configuration
+ * @package Hoogi91\ReleaseFlow\Tests\Unit\Configuration
  */
 class ComposerTest extends TestCase
 {

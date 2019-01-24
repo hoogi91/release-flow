@@ -5,6 +5,7 @@ namespace Hoogi91\ReleaseFlow\Utility;
 /**
  * Class LogUtility
  * @package Hoogi91\ReleaseFlow\Utility
+ * @codeCoverageIgnore
  */
 class LogUtility
 {

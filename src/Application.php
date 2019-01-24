@@ -24,6 +24,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  *
  * @author Thorsten Hogenkamp <hoogi20@googlemail.com>
  * @author Daniel Pozzi <bonndan76@googlemail.com>
+ * @codeCoverageIgnore
  */
 class Application extends \Symfony\Component\Console\Application
 {

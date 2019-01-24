@@ -1,6 +1,6 @@
 <?php
 
-namespace Hoogi91\ReleaseFlow\Tests\VersionControl;
+namespace Hoogi91\ReleaseFlow\Tests\Unit\VersionControl;
 
 use Hoogi91\ReleaseFlow\VersionControl\GitVersionControl;
 use PHPUnit\Framework\TestCase;
@@ -12,7 +12,7 @@ use Version\Version;
 
 /**
  * Class GitVersionControlTest
- * @package Hoogi91\ReleaseFlow\Tests\VersionControl
+ * @package Hoogi91\ReleaseFlow\Tests\Unit\VersionControl
  */
 class GitVersionControlTest extends TestCase
 {
@@ -48,7 +48,6 @@ class GitVersionControlTest extends TestCase
         $reflectionProperty = new \ReflectionProperty(GitVersionControl::class, 'git');
         $reflectionProperty->setAccessible(true);
         $reflectionProperty->setValue($this->vcs, $this->git);
-
     }
 
     /**
@@ -208,8 +207,9 @@ class GitVersionControlTest extends TestCase
 
     /**
      * @test
+     * @dataProvider startCommandDataProvider
      */
-    public function testGettingStartCommands()
+    public function testGettingStartCommands($branchType, $assertCount)
     {
         $version = Version::fromString('1.0.0');
 
@@ -217,40 +217,40 @@ class GitVersionControlTest extends TestCase
         $startCommandsMethod = new \ReflectionMethod($this->vcs, 'getStartCommands');
         $startCommandsMethod->setAccessible(true);
 
-        // single start command
-        $releaseCommands = $startCommandsMethod->invoke($this->vcs, $version, GitVersionControl::RELEASE);
-        $this->assertCount(1, $releaseCommands);
+        $commands = $startCommandsMethod->invoke($this->vcs, $version, $branchType);
+        $this->assertCount($assertCount, $commands);
+    }
 
-        // single start command
-        $hotfixCommands = $startCommandsMethod->invoke($this->vcs, $version, GitVersionControl::HOTFIX);
-        $this->assertCount(1, $hotfixCommands);
-
-        // zero cause finish command has no actions from other branches than releases and hotfixes
-        $notSupportedBranchCommands = $startCommandsMethod->invoke($this->vcs, $version, GitVersionControl::DEVELOP);
-        $this->assertCount(0, $notSupportedBranchCommands);
+    public function startCommandDataProvider()
+    {
+        return array(
+            [GitVersionControl::RELEASE, 1],
+            [GitVersionControl::HOTFIX, 1],
+            [GitVersionControl::DEVELOP, 0],
+        );
     }
 
     /**
      * @test
+     * @dataProvider finishCommandDataProvider
      */
-    public function testGettingFinishCommands()
+    public function testGettingFinishCommands($branchType, $publish, $assertCount)
     {
         $version = Version::fromString('1.0.0');
 
         $finishCommandsMethod = new \ReflectionMethod($this->vcs, 'getFinishCommands');
         $finishCommandsMethod->setAccessible(true);
 
-        // 7 commands cause publish command is activated
-        $releaseCommands = $finishCommandsMethod->invoke($this->vcs, $version, GitVersionControl::RELEASE, true);
-        $this->assertCount(7, $releaseCommands);
-
-        // 6 commands cause publish command is deactivated
-        $hotfixCommands = $finishCommandsMethod->invoke($this->vcs, $version, GitVersionControl::HOTFIX);
-        $this->assertCount(6, $hotfixCommands);
-
-        // zero cause finish command has no actions from other branches than releases and hotfixes
-        $notSupportedBranchCommands = $finishCommandsMethod->invoke($this->vcs, $version, GitVersionControl::DEVELOP);
-        $this->assertCount(0, $notSupportedBranchCommands);
+        $commands = $finishCommandsMethod->invoke($this->vcs, $version, $branchType, $publish);
+        $this->assertCount($assertCount, $commands);
     }
 
+    public function finishCommandDataProvider()
+    {
+        return array(
+            [GitVersionControl::RELEASE, true, 7],
+            [GitVersionControl::HOTFIX, false, 6],
+            [GitVersionControl::DEVELOP, false, 0],
+        );
+    }
 }

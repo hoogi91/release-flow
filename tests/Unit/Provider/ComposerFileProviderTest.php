@@ -1,6 +1,6 @@
 <?php
 
-namespace Hoogi91\ReleaseFlow\Tests\Provider;
+namespace Hoogi91\ReleaseFlow\Tests\Unit\Provider;
 
 use Hoogi91\ReleaseFlow\Application;
 use Hoogi91\ReleaseFlow\Configuration\Composer;
@@ -10,7 +10,7 @@ use Version\Version;
 
 /**
  * Class ComposerFileProviderTest
- * @package Hoogi91\ReleaseFlow\Tests\Provider
+ * @package Hoogi91\ReleaseFlow\Tests\Unit\Provider
  */
 class ComposerFileProviderTest extends TestCase
 {
