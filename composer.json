@@ -2,7 +2,7 @@
     "name": "hoogi91/release-flow",
     "description": "SemVer-compliant release versioning/version bumping with git-flow incl. providers to update additional project files",
     "license": "GPL-3.0-or-later",
-    "version": "1.0.0",
+    "version": "1.0.1-dev",
     "authors": [
         {
             "name": "Thorsten Hogenkamp",
