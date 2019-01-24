@@ -55,18 +55,15 @@ abstract class CommandTest extends TestCase
     {
         $this->output = $this->getMockBuilder(OutputInterface::class)->getMock();
         $this->input = $this->getMockBuilder(InputInterface::class)->getMock();
-        $this->vcs = $this->getMockBuilder(GitVersionControl::class)
-            ->disableOriginalConstructor()
-            ->setMethods([
-                'executeCommands',
-                'getBranches',
-                'getCurrentBranch',
-                'hasLocalModifications',
-                'getTags',
-                'revertWorkingCopy',
-                'saveWorkingCopy',
-            ])
-            ->getMock();
+        $this->vcs = $this->getMockBuilder(GitVersionControl::class)->disableOriginalConstructor()->setMethods([
+            'executeCommands',
+            'getBranches',
+            'getCurrentBranch',
+            'hasLocalModifications',
+            'getTags',
+            'revertWorkingCopy',
+            'saveWorkingCopy',
+        ])->getMock();
 
         $commandClass = $this->getCommandClass();
         $this->command = new $commandClass();
@@ -91,6 +88,16 @@ abstract class CommandTest extends TestCase
         $this->input->method('getOption')->willReturnCallback(function ($option) use ($options) {
             return $options[$option] ?? false;
         });
+    }
+
+    /**
+     * @return GitVersionControl|\PHPUnit\Framework\MockObject\MockObject
+     */
+    public function getUnallowAllCommandsVersionControl()
+    {
+        $vcs = $this->getMockBuilder(GitVersionControl::class)->disableOriginalConstructor()->getMock();
+        $vcs->method('canProcessCommand')->willReturn(false);
+        return $vcs;
     }
 
     /**

@@ -22,6 +22,21 @@ class FinishCommandTest extends CommandTest
 
     /**
      * @test
+     */
+    public function testReturnsErrorCodeWhenCommandIsNotCompatibleWithVersionControl()
+    {
+        $vcs = $this->getUnallowAllCommandsVersionControl();
+        $vcs->expects($this->once())->method('canProcessCommand')->willReturn(false);
+
+        // update command version control to use ;)
+        $this->command->setVersionControl($vcs);
+
+        $exitCode = $this->command->run($this->input, $this->output);
+        $this->assertEquals(255, $exitCode);
+    }
+
+    /**
+     * @test
      * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
      */
     public function testThrowsExceptionIfNoFlowExists()
@@ -85,7 +100,7 @@ class FinishCommandTest extends CommandTest
     /**
      * @test
      */
-    public function testFinishReleaseWithAsksForLocalModifications()
+    public function testFinishReleaseWithAsksForLocalModificationsAndCommitMessage()
     {
         $this->setOptionValues(['dry-run' => true]);
 
@@ -107,11 +122,19 @@ class FinishCommandTest extends CommandTest
         $questionHelper = $this->helperSet->get('question');
 
         // 1. confirm saving local modifications
+        $questionHelper->expects($this->at(0))->method('ask')->willReturn(true);
         // 2. setting commit message
-        // 3. confirm commit message
-        // 4. confirm finishing release and
-        // 5. confirm publishing
-        $questionHelper->expects($this->exactly(5))->method('ask')->willReturn(true);
+        $questionHelper->expects($this->at(1))->method('ask')->willReturn(true);
+        // 3. deny commit message => user was not finished
+        $questionHelper->expects($this->at(2))->method('ask')->willReturn(false);
+        // 4. setting correct commit message
+        $questionHelper->expects($this->at(3))->method('ask')->willReturn(true);
+        // 5. confirm commit message
+        $questionHelper->expects($this->at(4))->method('ask')->willReturn(true);
+        // 6. confirm finishing release and
+        $questionHelper->expects($this->at(5))->method('ask')->willReturn(true);
+        // 7. confirm publishing
+        $questionHelper->expects($this->at(6))->method('ask')->willReturn(true);
 
         // check if finish release commands are executed
         $this->vcs->expects($this->once())
@@ -181,5 +204,33 @@ class FinishCommandTest extends CommandTest
         $this->assertEquals('git checkout develop', $commands[4]);
         $this->assertEquals('git merge --no-ff hotfix/1.0.3', $commands[5]);
         $this->assertEquals('git branch -d hotfix/1.0.3', $commands[6]);
+    }
+
+    /**
+     * @test
+     */
+    public function testBreakAfterNotConfirmingSaveOfLocalModifications()
+    {
+        $this->setOptionValues(['dry-run' => true]);
+
+        // simulate that we are in release branch
+        $this->vcs->expects($this->once())
+            ->method('getBranches')
+            ->willReturn(['master', 'develop', 'hotfix/1.0.3']);
+        $this->vcs->expects($this->atLeastOnce())
+            ->method('getCurrentBranch')
+            ->willReturn('hotfix/1.0.3');
+
+        // simulate that local modifications are available that needs to be committed first
+        $this->vcs->expects($this->once())->method('hasLocalModifications')->willReturn(true);
+
+        /** @var QuestionHelper|\PHPUnit_Framework_MockObject_MockObject $questionHelper */
+        $questionHelper = $this->helperSet->get('question');
+
+        // deny committing of local modifications to break current request
+        $questionHelper->expects($this->exactly(1))->method('ask')->willReturn(false);
+
+        $exitCode = $this->command->run($this->input, $this->output);
+        $this->assertEquals(0, $exitCode);
     }
 }

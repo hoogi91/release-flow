@@ -181,7 +181,7 @@ class GitVersionControl extends AbstractVersionControl
                 sprintf('git branch -d release/%s', $version->getVersionString()),
             ]);
         } elseif ($branchType === self::HOTFIX) {
-            return [
+            return array_filter([
                 sprintf('git checkout %s', self::MASTER),
                 sprintf('git merge --no-ff hotfix/%s', $version->getVersionString()),
                 sprintf('git tag -a %1$s -m "Tagging version %1$s"', $version->getVersionString()),
@@ -189,7 +189,7 @@ class GitVersionControl extends AbstractVersionControl
                 sprintf('git checkout %s', self::DEVELOP),
                 sprintf('git merge --no-ff hotfix/%s', $version->getVersionString()),
                 sprintf('git branch -d hotfix/%s', $version->getVersionString()),
-            ];
+            ]);
         }
         return [];
     }

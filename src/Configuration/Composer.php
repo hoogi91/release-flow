@@ -80,7 +80,7 @@ class Composer
      */
     public function getVersion(): string
     {
-        return $this->getConfig('version');
+        return $this->getConfig('version', '');
     }
 
     /**
