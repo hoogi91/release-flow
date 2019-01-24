@@ -17,7 +17,7 @@ The recommended way to install this tool is by using [Composer](https://getcompo
 
 **Installation using Download**
 
-If you want to use `release-flow.phar` you can simply download it [here](#). The usage is the same as below but just replace `bin/release-flow` with `release-flow.phar`
+If you want to use `release-flow.phar` you can simply download latest version  [here](https://github.com/hoogi91/release-flow/releases). The usage is the same as below but just replace `bin/release-flow` with `release-flow.phar`
 
 ## Configuration
 If you are working on a composer-based project you can configure which VCS and file provider classes are used when executing release-flow commands. Just put a similiar config like below to your composer.json:
