@@ -2,16 +2,34 @@ language: php
 
 php:
   - 7.2
+  - 7.3
 
-before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq git-flow
-
-before_script:
-  - curl -s http://getcomposer.org/installer | php --
-  - php composer.phar install
+cache:
+  directories:
+    - $HOME/.composer/cache
 
 script: phpunit
+
+jobs:
+  fast_finish: true
+  allow_failures:
+    - php: 7.3
+  include:
+    - stage: test
+      php: 7.2
+
+    - stage: test
+      php: 7.3
+
+before_deploy: composer build
+
+deploy:
+  provider: releases
+  api_key: $GITHUB_OAUTH_TOKEN
+  file: 'dist/release-flow.phar'
+  skip_cleanup: true
+  on:
+    tags: true
 
 notifications:
   email:

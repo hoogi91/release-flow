@@ -69,7 +69,7 @@
         ],
         "command.package.end": [
           "chmod +x dist/release-flow.phar",
-          "mv dist/release-flow.phar dist/release-flow-$(date +%Y%m%d).phar"
+          "cp dist/release-flow.phar dist/release-flow-$(date +%Y%m%d).phar"
         ]
       }
     }
