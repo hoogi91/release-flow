@@ -22,21 +22,6 @@ class FinishCommandTest extends CommandTest
 
     /**
      * @test
-     */
-    public function testReturnsErrorCodeWhenCommandIsNotCompatibleWithVersionControl()
-    {
-        $vcs = $this->getUnallowAllCommandsVersionControl();
-        $vcs->expects($this->once())->method('canProcessCommand')->willReturn(false);
-
-        // update command version control to use ;)
-        $this->command->setVersionControl($vcs);
-
-        $exitCode = $this->command->run($this->input, $this->output);
-        $this->assertEquals(255, $exitCode);
-    }
-
-    /**
-     * @test
      * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
      */
     public function testThrowsExceptionIfNoFlowExists()
