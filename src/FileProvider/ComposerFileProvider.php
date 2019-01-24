@@ -85,7 +85,7 @@ class ComposerFileProvider implements FileProviderInterface
         $json['version'] = $version->getVersionString();
 
         // try to save new composer.json pretty printed
-        $bytesWritten = file_put_contents(
+        $bytesWritten = @file_put_contents(
             $composer->getFileLocation(),
             json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );

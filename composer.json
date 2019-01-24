@@ -23,7 +23,8 @@
   "require-dev": {
     "squizlabs/php_codesniffer": "^3.0",
     "phpunit/phpunit": "^6.0",
-    "macfja/phar-builder": "^0.2.8"
+    "macfja/phar-builder": "^0.2.8",
+    "mikey179/vfsStream": "^1.6"
   },
   "suggest": {
     "git-flow": "*"

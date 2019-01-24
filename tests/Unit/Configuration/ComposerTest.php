@@ -3,6 +3,7 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\Configuration;
 
 use Hoogi91\ReleaseFlow\Configuration\Composer;
+use org\bovigo\vfs\vfsStream;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,7 +20,10 @@ class ComposerTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $this->composer = new Composer(__DIR__);
+        $root = vfsStream::setup('root');
+        vfsStream::newFile('composer.json')->at($root)->setContent(file_get_contents(__DIR__ . '/composer.json'));
+
+        $this->composer = new Composer($root->url());
     }
 
     /**
@@ -28,7 +32,7 @@ class ComposerTest extends TestCase
      */
     public function testThrowsExceptionWhenComposerFileIsNotFound()
     {
-        new Composer(__DIR__ . '/unexisting/directory/');
+        new Composer(vfsStream::setup('unexisting-directory')->url());
     }
 
     /**
@@ -36,7 +40,7 @@ class ComposerTest extends TestCase
      */
     public function testConstructorWithValidPath()
     {
-        $this->assertEquals(__DIR__ . '/composer.json', $this->composer->getFileLocation());
+        $this->assertEquals(vfsStream::url('root/composer.json'), $this->composer->getFileLocation());
     }
 
     /**

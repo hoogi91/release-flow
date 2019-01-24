@@ -24,11 +24,12 @@ class LogUtility
      */
     public static function log($message, $severity = self::SEVERITY_INFO)
     {
+        $logFile = rtrim(getcwd(), '/') . '/' . static::LOG_FILE;
         return error_log(vsprintf('[%s][%s] %s', [
             date('d/M/Y:H:i:s O'),
             $severity,
             $message,
-        ]), 3, getcwd() . static::LOG_FILE);
+        ]), 3, $logFile);
     }
 
     /**

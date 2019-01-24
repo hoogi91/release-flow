@@ -83,7 +83,7 @@ class GitVersionControl extends AbstractVersionControl
             return [];
         }
 
-        return array_filter(array_map(function ($versionNumber) {
+        return array_values(array_filter(array_map(function ($versionNumber) {
             try {
                 return Version::fromString($versionNumber);
             } catch (InvalidVersionStringException $e) {
@@ -94,7 +94,7 @@ class GitVersionControl extends AbstractVersionControl
                 ));
                 return null;
             }
-        }, $tags));
+        }, $tags)));
     }
 
     /**

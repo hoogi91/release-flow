@@ -3,6 +3,7 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\VersionControl;
 
 use Hoogi91\ReleaseFlow\VersionControl\GitFlowVersionControl;
+use org\bovigo\vfs\vfsStream;
 
 /**
  * Class GitFlowVersionControlTest
@@ -19,7 +20,7 @@ class GitFlowVersionControlTest extends GitVersionControlTest
     {
         parent::setUp();
         // get version control from current GIT repository
-        $this->vcs = new GitFlowVersionControl(dirname(__DIR__, 3));
+        $this->vcs = new GitFlowVersionControl($this->gitRepositoryPath);
 
         // update git property in vcs
         $reflectionProperty = new \ReflectionProperty(GitFlowVersionControl::class, 'git');
@@ -33,7 +34,7 @@ class GitFlowVersionControlTest extends GitVersionControlTest
      */
     public function testThrowsExceptionOnWorkingDirectoryIsNotGitRepository()
     {
-        new GitFlowVersionControl('/tmp');
+        new GitFlowVersionControl(vfsStream::setup('tmp')->url());
     }
 
     public function startCommandDataProvider()

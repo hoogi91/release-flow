@@ -3,6 +3,7 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\VersionControl;
 
 use Hoogi91\ReleaseFlow\VersionControl\GitVersionControl;
+use org\bovigo\vfs\vfsStream;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use TQ\Git\Cli\Binary;
@@ -31,9 +32,19 @@ class GitVersionControlTest extends TestCase
      */
     protected $gitBinary;
 
+    /**
+     * @var string
+     */
+    protected $gitRepositoryPath;
+
     public function setUp()
     {
         parent::setUp();
+
+        // create virtual file system root and git repository
+        vfsStream::setup(getcwd());
+        $this->gitRepositoryPath = vfsStream::setup('gitRepo')->url();
+        mkdir($this->gitRepositoryPath . '/.git'); // enable git version control
 
         $this->gitBinary = $this->getMockBuilder(Binary::class)->disableOriginalConstructor()->setMethods([
             'tag',
@@ -42,7 +53,7 @@ class GitVersionControlTest extends TestCase
         $this->git->method('getGit')->willReturn($this->gitBinary);
 
         // get version control from current GIT repository
-        $this->vcs = new GitVersionControl(dirname(__DIR__, 3));
+        $this->vcs = new GitVersionControl($this->gitRepositoryPath);
 
         // update git property in vcs
         $reflectionProperty = new \ReflectionProperty(GitVersionControl::class, 'git');
@@ -56,7 +67,7 @@ class GitVersionControlTest extends TestCase
      */
     public function testThrowsExceptionOnWorkingDirectoryIsNotGitRepository()
     {
-        new GitVersionControl('/tmp');
+        new GitVersionControl(vfsStream::setup('tmp')->url());
     }
 
     /**
@@ -119,8 +130,6 @@ class GitVersionControlTest extends TestCase
      */
     public function testGettingTagsWithInvalidSemVer()
     {
-        $this->markTestSkipped('Implement vfsStream to test invalid SemVer strings => currently triggers LogUtility!');
-
         $tagClass = new class
         {
             public function getStdOut()
@@ -156,8 +165,6 @@ class GitVersionControlTest extends TestCase
      */
     public function testRevertingWorkingCopyFailed()
     {
-        $this->markTestSkipped('Implement vfsStream to test exception on revert => triggers LogUtility!');
-
         $this->git->expects($this->once())->method('reset')->willThrowException($this->createMock(CallException::class));
         $this->assertFalse($this->vcs->revertWorkingCopy());
     }
@@ -187,8 +194,6 @@ class GitVersionControlTest extends TestCase
      */
     public function testSavingWorkingCopyFailed()
     {
-        $this->markTestSkipped('Implement vfsStream to test exception on revert => triggers LogUtility!');
-
         $this->git->expects($this->once())->method('add');
         $this->git->expects($this->once())->method('commit')->willThrowException($this->createMock(CallException::class));
         $this->assertFalse($this->vcs->saveWorkingCopy('Commit Message'));

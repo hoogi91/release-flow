@@ -5,6 +5,7 @@ namespace Hoogi91\ReleaseFlow\Tests\Unit\Provider;
 use Hoogi91\ReleaseFlow\Application;
 use Hoogi91\ReleaseFlow\Configuration\Composer;
 use Hoogi91\ReleaseFlow\FileProvider\ComposerFileProvider;
+use org\bovigo\vfs\vfsStream;
 use PHPUnit\Framework\TestCase;
 use Version\Version;
 
@@ -30,6 +31,11 @@ class ComposerFileProviderTest extends TestCase
     protected $composerTestFile;
 
     /**
+     * @var string
+     */
+    protected $composerOutputFile;
+
+    /**
      * @var ComposerFileProvider
      */
     protected $fileProvider;
@@ -45,14 +51,10 @@ class ComposerFileProviderTest extends TestCase
         $this->application->method('getComposer')->willReturn($this->composer);
         $this->fileProvider = new ComposerFileProvider();
 
-        $this->composerTestFile = __DIR__ . '/composer-testfile.json';
-        file_put_contents($this->composerTestFile, '');
-    }
-
-    public function tearDown()
-    {
-        parent::tearDown();
-        unlink($this->composerTestFile);
+        // create virtual filesystem root and composer test file
+        $root = vfsStream::setup('root');
+        $this->composerTestFile = vfsStream::newFile('composer-testfile.json')->at($root)->setContent('')->url();
+        $this->composerOutputFile = vfsStream::newFile('composer-output.json')->at($root)->setContent(file_get_contents(__DIR__ . '/output-composer.json'))->url();
     }
 
     /**
@@ -60,7 +62,10 @@ class ComposerFileProviderTest extends TestCase
      */
     public function testProcessBreakOnMissingComposerFile()
     {
-        $this->composer->expects($this->once())->method('getFileLocation')->willReturn(__DIR__); // should be false
+        $this->composer->expects($this->once())
+            ->method('getFileLocation')
+            ->willReturn(vfsStream::setup('not-existing')->url()); // should be false
+
         $this->fileProvider->process(Version::fromString('2.3.4'), $this->application);
     }
 
@@ -115,7 +120,7 @@ class ComposerFileProviderTest extends TestCase
         $this->fileProvider->process(Version::fromString('2.3.4'), $this->application);
 
         // validate json content in temporary test file
-        $this->assertJsonFileEqualsJsonFile(__DIR__ . '/output-composer.json', $this->composerTestFile);
+        $this->assertJsonFileEqualsJsonFile($this->composerOutputFile, $this->composerTestFile);
     }
 
     /**
@@ -124,13 +129,10 @@ class ComposerFileProviderTest extends TestCase
      */
     public function testFailSavingOfComposerContent()
     {
-        $this->markTestSkipped('Implement vfsStream to test file_put_contents in virtual file system!');
-
         // first return existing file to not break processing
-        // ... then return non-writable path to break file_put_content
+        // ... then failed for non-writable path to break file_put_content
         $this->composer->expects($this->exactly(2))->method('getFileLocation')->willReturn($this->composerTestFile);
-
-        // TODO: update test files permission to break file_put_contents
+        vfsStream::setQuota(0); // disallow writing to break writing file
 
         // only try to write version into json file
         $this->composer->expects($this->once())->method('getVersion')->willReturn('2.3.3');
