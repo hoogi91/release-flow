@@ -5,5 +5,5 @@
  */
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$application = new bonndan\ReleaseFlow\Application('release-flow');
+$application = new Hoogi91\ReleaseFlow\Application('release-flow');
 $application->run();

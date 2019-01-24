@@ -1,0 +1,31 @@
+{
+  "name": "hoogi91/composer-test-package",
+  "version": "0.2.0",
+  "description": "Composer Test Package",
+  "keywords": [
+    "release",
+    "version",
+    "semantic versioning",
+    "vcs tag"
+  ],
+  "homepage": "http://github.com/hoogi91/composer-test-package",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Thorsten Hogenkamp",
+      "email": "hoogi20@googlemail.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.3.3",
+    "symfony/console": "~2.0"
+  },
+  "extra": {
+    "hoogi91/release-flow": {
+      "vcs": "Hoogi91\\ReleaseFlow\\VersionControl\\GitFlowVersionControl",
+      "provider": [
+        "Vendor\\MyReleaseFlowExtension\\FileProvder\\MyFileProvider"
+      ]
+    }
+  }
+}

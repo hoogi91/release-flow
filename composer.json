@@ -1,30 +1,77 @@
 {
-   "name": "bonndan\/release-flow",
-   "description": "Semantic release versioning with git-flow and composer",
-   "license": "MIT",
-   "version": "0.1.1",
-   "authors": [
-      {
-         "name": "Daniel Pozzi",
-         "email": "bonndan76@googlemail.com"
-      }
-   ],
-   "require": {
-      "php": ">=5.3.3",
-      "symfony\/console": ">=2.4.0",
-      "vierbergenlars\/php-semver": "3.0.0-rc2",
-      "kzykhys\/git": "1.0.*@dev"
-   },
-   "suggest": {
-      "git-flow": "*",
-      "clue\/phar-composer": "dev-master"
-   },
-   "autoload": {
-      "psr-4": {
-         "bonndan\\ReleaseFlow\\":"src\/bonndan\/ReleaseFlow","bonndan\\ReleaseFlow\\Test\\": "test\/"
-      }
-   },
-   "bin": [
-      "bin\/release-flow"
-   ]
+    "name": "hoogi91/release-flow",
+    "description": "SemVer-compliant release versioning/version bumping with git-flow incl. providers to update additional project files",
+    "license": "GPL-3.0-or-later",
+    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "Thorsten Hogenkamp",
+            "email": "hoogi20@googlemail.com"
+        },
+        {
+            "name": "Daniel Pozzi",
+            "email": "bonndan76@googlemail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+        "ext-json": "*",
+        "symfony/console": "^4.2",
+        "nikolaposa/version": "^3.1",
+        "teqneers/php-stream-wrapper-for-git": "^2.0"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.0",
+        "phpunit/phpunit": "^6.0",
+        "macfja/phar-builder": "^0.2.8",
+        "mikey179/vfsStream": "^1.6"
+    },
+    "suggest": {
+        "git-flow": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hoogi91\\ReleaseFlow\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hoogi91\\ReleaseFlow\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/release-flow"
+    ],
+    "scripts": {
+        "build": [
+            "vendor/bin/phar-builder package composer.json"
+        ],
+        "test": [
+            "vendor/bin/phpunit"
+        ]
+    },
+    "extra": {
+        "phar-builder": {
+            "compression": "GZip",
+            "name": "release-flow.phar",
+            "output-dir": "dist",
+            "entry-point": "bin/release-flow",
+            "include": [
+                "bin",
+                "src"
+            ],
+            "include-dev": false,
+            "skip-shebang": false,
+            "events": {
+                "command.package.start": [
+                    "rm -rf dist/release-flow.phar",
+                    "rm -rf dist/release-flow-$(date +%Y%m%d).phar"
+                ],
+                "command.package.end": [
+                    "chmod +x dist/release-flow.phar",
+                    "cp dist/release-flow.phar dist/release-flow-$(date +%Y%m%d).phar"
+                ]
+            }
+        }
+    }
 }

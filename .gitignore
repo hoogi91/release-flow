@@ -1,4 +1,7 @@
+.idea/
+.vagrant/
+vagrant.retry
+dist/
+tests/reports/
+vendor/
 composer.lock
-vendor
-tags
-.idea

@@ -1,0 +1,9 @@
+{
+  "name": "hoogi91/composer-test-package",
+  "version": "2.3.4",
+  "description": "Composer Test Package",
+  "require": {
+    "php": ">=5.3.3",
+    "symfony/console": "~2.0"
+  }
+}

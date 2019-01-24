@@ -1,0 +1,27 @@
+---
+- hosts: all
+  become: true
+  vars:
+    php_default_version_debian: '7.2'
+    php_enable_webserver: false
+    php_packages_extra: ['php7.2-bcmath', 'php7.2-zip']
+    php_xdebug_default_enable: 1
+    php_xdebug_coverage_enable: 1
+  pre_tasks:
+    - name: update apt cache
+      apt: update_cache=yes cache_valid_time=3600
+  roles:
+    - geerlingguy.php
+    - geerlingguy.php-xdebug
+    - geerlingguy.composer
+  post_tasks:
+    - name: composer install
+      shell: composer install
+      args:
+        chdir: /vagrant
+    - name: allow PHAR creation on CLI
+      blockinfile:
+        path: /etc/php/7.2/cli/php.ini
+        block: |
+          # enable phar creation on CLI
+          phar.readonly = 0
