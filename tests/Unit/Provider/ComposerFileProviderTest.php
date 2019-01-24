@@ -5,6 +5,7 @@ namespace Hoogi91\ReleaseFlow\Tests\Unit\Provider;
 use Hoogi91\ReleaseFlow\Application;
 use Hoogi91\ReleaseFlow\Configuration\Composer;
 use Hoogi91\ReleaseFlow\FileProvider\ComposerFileProvider;
+use org\bovigo\vfs\Quota;
 use org\bovigo\vfs\vfsStream;
 use PHPUnit\Framework\TestCase;
 use Version\Version;
@@ -51,10 +52,19 @@ class ComposerFileProviderTest extends TestCase
         $this->application->method('getComposer')->willReturn($this->composer);
         $this->fileProvider = new ComposerFileProvider();
 
-        // create virtual filesystem root and composer test file
-        $root = vfsStream::setup('root');
-        $this->composerTestFile = vfsStream::newFile('composer-testfile.json')->at($root)->setContent('')->url();
-        $this->composerOutputFile = vfsStream::newFile('composer-output.json')->at($root)->setContent(file_get_contents(__DIR__ . '/output-composer.json'))->url();
+        // create virtual composer test files
+        $this->composerTestFile = PHP_WORKDIR . '/fixtures/Provider/composer-input.json';
+        $this->composerOutputFile = PHP_WORKDIR . '/fixtures/Provider/composer-output.json';
+    }
+
+    /**
+     * reset variables and virtual filesystem after each test
+     */
+    public function tearDown()
+    {
+        parent::tearDown();
+        // reset quota to be unlimited
+        vfsStream::setQuota(Quota::UNLIMITED);
     }
 
     /**
@@ -64,9 +74,9 @@ class ComposerFileProviderTest extends TestCase
     {
         $this->composer->expects($this->once())
             ->method('getFileLocation')
-            ->willReturn(vfsStream::setup('not-existing')->url()); // should be false
+            ->willReturn(PHP_WORKDIR . '/not-existing-file.txt'); // should be false
 
-        $this->fileProvider->process(Version::fromString('2.3.4'), $this->application);
+        $this->assertFalse($this->fileProvider->process(Version::fromString('2.3.4'), $this->application));
     }
 
     /**
@@ -76,7 +86,7 @@ class ComposerFileProviderTest extends TestCase
     {
         $this->composer->expects($this->once())->method('getFileLocation')->willReturn($this->composerTestFile);
         $this->composer->expects($this->once())->method('getVersion')->willReturn('');
-        $this->fileProvider->process(Version::fromString('2.3.4'), $this->application);
+        $this->assertFalse($this->fileProvider->process(Version::fromString('2.3.4'), $this->application));
     }
 
     /**

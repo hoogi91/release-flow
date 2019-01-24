@@ -24,7 +24,7 @@ class LogUtility
      */
     public static function log($message, $severity = self::SEVERITY_INFO)
     {
-        $logFile = rtrim(getcwd(), '/') . '/' . static::LOG_FILE;
+        $logFile = rtrim(PHP_WORKDIR, '/') . '/' . static::LOG_FILE;
         return error_log(vsprintf('[%s][%s] %s', [
             date('d/M/Y:H:i:s O'),
             $severity,

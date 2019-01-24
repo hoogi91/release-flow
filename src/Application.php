@@ -52,14 +52,17 @@ class Application extends \Symfony\Component\Console\Application
     {
         try {
             parent::__construct($name, $version);
-            $workingDirectory = getcwd();
+
+            if (!defined('PHP_WORKDIR')) {
+                define('PHP_WORKDIR', getcwd());
+            }
 
             // read composer.json file configuration for usage
-            $this->composer = new Composer($workingDirectory);
+            $this->composer = new Composer(PHP_WORKDIR);
 
             // build version control class from composer settings
             $versionControlClass = $this->composer->getVersionControlClass();
-            $this->vcs = new $versionControlClass($workingDirectory);
+            $this->vcs = new $versionControlClass(PHP_WORKDIR);
         } catch (ReleaseFlowException $e) {
             $this->outputErrorAndExit($e->getMessage());
         }

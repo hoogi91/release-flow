@@ -4,6 +4,7 @@ namespace Hoogi91\ReleaseFlow\Tests\Unit\VersionControl;
 
 use Hoogi91\ReleaseFlow\VersionControl\GitVersionControl;
 use org\bovigo\vfs\vfsStream;
+use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use TQ\Git\Cli\Binary;
@@ -33,18 +34,13 @@ class GitVersionControlTest extends TestCase
     protected $gitBinary;
 
     /**
-     * @var string
+     * @var vfsStreamDirectory
      */
     protected $gitRepositoryPath;
 
     public function setUp()
     {
         parent::setUp();
-
-        // create virtual file system root and git repository
-        vfsStream::setup(getcwd());
-        $this->gitRepositoryPath = vfsStream::setup('gitRepo')->url();
-        mkdir($this->gitRepositoryPath . '/.git'); // enable git version control
 
         $this->gitBinary = $this->getMockBuilder(Binary::class)->disableOriginalConstructor()->setMethods([
             'tag',
@@ -53,7 +49,7 @@ class GitVersionControlTest extends TestCase
         $this->git->method('getGit')->willReturn($this->gitBinary);
 
         // get version control from current GIT repository
-        $this->vcs = new GitVersionControl($this->gitRepositoryPath);
+        $this->vcs = new GitVersionControl(PHP_WORKDIR);
 
         // update git property in vcs
         $reflectionProperty = new \ReflectionProperty(GitVersionControl::class, 'git');
@@ -67,7 +63,7 @@ class GitVersionControlTest extends TestCase
      */
     public function testThrowsExceptionOnWorkingDirectoryIsNotGitRepository()
     {
-        new GitVersionControl(vfsStream::setup('tmp')->url());
+        new GitVersionControl(vfsStream::create([], vfsStream::newDirectory('no-repo'))->url());
     }
 
     /**

@@ -45,6 +45,9 @@
   "scripts": {
     "build": [
       "vendor/bin/phar-builder package composer.json"
+    ],
+    "test": [
+      "vendor/bin/phpunit"
     ]
   },
   "extra": {

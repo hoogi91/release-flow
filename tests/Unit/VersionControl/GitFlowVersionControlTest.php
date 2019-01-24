@@ -20,7 +20,7 @@ class GitFlowVersionControlTest extends GitVersionControlTest
     {
         parent::setUp();
         // get version control from current GIT repository
-        $this->vcs = new GitFlowVersionControl($this->gitRepositoryPath);
+        $this->vcs = new GitFlowVersionControl(PHP_WORKDIR);
 
         // update git property in vcs
         $reflectionProperty = new \ReflectionProperty(GitFlowVersionControl::class, 'git');
@@ -34,7 +34,7 @@ class GitFlowVersionControlTest extends GitVersionControlTest
      */
     public function testThrowsExceptionOnWorkingDirectoryIsNotGitRepository()
     {
-        new GitFlowVersionControl(vfsStream::setup('tmp')->url());
+        new GitFlowVersionControl(vfsStream::create([], vfsStream::newDirectory('no-repo'))->url());
     }
 
     public function startCommandDataProvider()
