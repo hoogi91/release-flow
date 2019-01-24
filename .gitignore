@@ -1,5 +1,6 @@
 .idea/
 .vagrant/
+vagrant.retry
 dist/
 tests/reports/
 vendor/
