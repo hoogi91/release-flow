@@ -3,6 +3,8 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\Configuration;
 
 use Hoogi91\ReleaseFlow\Configuration\Composer;
+use Hoogi91\ReleaseFlow\Exception\ComposerException;
+use Hoogi91\ReleaseFlow\VersionControl\GitFlowVersionControl;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,34 +18,30 @@ class ComposerTest extends TestCase
      */
     protected $composer;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
-        $this->composer = new Composer(PHP_WORKDIR . '/fixtures/Configuration');
+        $this->composer = new Composer(PHP_WORKING_DIRECTORY . '/fixtures/Configuration');
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\ComposerException
-     */
-    public function testThrowsExceptionWhenComposerFileIsNotFound()
+    public function testThrowsExceptionWhenComposerFileIsNotFound(): void
     {
-        new Composer(PHP_WORKDIR . '/not-existing-directory/');
+        $this->expectException(ComposerException::class);
+        new Composer(PHP_WORKING_DIRECTORY . '/not-existing-directory/');
     }
 
-    /**
-     * @test
-     */
-    public function testConstructorWithValidPath()
+    public function testConstructorWithValidPath(): void
     {
-        $this->assertEquals(PHP_WORKDIR . '/fixtures/Configuration/composer.json', $this->composer->getFileLocation());
+        $this->assertEquals(
+            PHP_WORKING_DIRECTORY . '/fixtures/Configuration/composer.json',
+            $this->composer->getFileLocation()
+        );
     }
 
     /**
-     * @test
      * @depends testConstructorWithValidPath
      */
-    public function testFileLocationAndReadingConfiguration()
+    public function testFileLocationAndReadingConfiguration(): void
     {
         // check package name and version
         $this->assertEquals('hoogi91/composer-test-package', $this->composer->getConfig('name'));
@@ -55,14 +53,12 @@ class ComposerTest extends TestCase
         // check if array can be read
         $this->assertInternalType('array', $require = $this->composer->getConfig('require'));
         $this->assertEquals('~2.0', $require['symfony/console']);
-
     }
 
     /**
-     * @test
      * @depends testConstructorWithValidPath
      */
-    public function testReadingExtraConfiguration()
+    public function testReadingExtraConfiguration(): void
     {
         // check getting extra configuration
         $this->assertInternalType('array', $extraConfig = $this->composer->getExtra());
@@ -73,10 +69,7 @@ class ComposerTest extends TestCase
         $this->assertEquals('my-default-value', $this->composer->getExtra('not-existing', 'my-default-value'));
 
         // validate vcs class name
-        $this->assertEquals(
-            'Hoogi91\\ReleaseFlow\\VersionControl\\GitFlowVersionControl',
-            $this->composer->getVersionControlClass()
-        );
+        $this->assertEquals(GitFlowVersionControl::class, $this->composer->getVersionControlClass());
 
         // validate version string
         $this->assertInternalType('array', $providerClasses = $this->composer->getProviderClasses());

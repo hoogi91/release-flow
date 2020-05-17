@@ -18,7 +18,7 @@ abstract class AbstractFlowIncrementCommand extends AbstractFlowCommand
     /**
      * creates a release branch with version increment
      */
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
         $this->addOption(
@@ -34,7 +34,7 @@ abstract class AbstractFlowIncrementCommand extends AbstractFlowCommand
      *
      * @return bool
      */
-    protected function confirmNextVersion(Version $version)
+    protected function confirmNextVersion(Version $version): bool
     {
         // check if confirmation is forced and needs to be skipped
         if ($this->getInput()->getOption('force') === true) {
@@ -51,12 +51,14 @@ abstract class AbstractFlowIncrementCommand extends AbstractFlowCommand
      *
      * @return Version
      */
-    protected function getNextVersion(string $incrementType = self::PATCH)
+    protected function getNextVersion(string $incrementType = self::PATCH): Version
     {
         $currentVersion = $this->versionControl->getCurrentVersion();
         if ($incrementType === self::MAJOR) {
             return $currentVersion->incrementMajor();
-        } elseif ($incrementType === self::MINOR) {
+        }
+
+        if ($incrementType === self::MINOR) {
             return $currentVersion->incrementMinor();
         }
         return $currentVersion->incrementPatch();
@@ -67,16 +69,18 @@ abstract class AbstractFlowIncrementCommand extends AbstractFlowCommand
      *
      * @return ConfirmationQuestion
      */
-    protected function getNextVersionConfirmation($incrementTypeOrVersion = self::PATCH)
+    protected function getNextVersionConfirmation($incrementTypeOrVersion = self::PATCH): ConfirmationQuestion
     {
         // allow increment type or version object
         $version = $incrementTypeOrVersion;
         if (!$incrementTypeOrVersion instanceof Version) {
             $version = $this->getNextVersion($incrementTypeOrVersion);
         }
-        return new ConfirmationQuestion(sprintf(
-            '<question>The next version will be %s. Do you agree? [Y/n]</question>',
-            $version->getVersionString()
-        ));
+        return new ConfirmationQuestion(
+            sprintf(
+                '<question>The next version will be %s. Do you agree? [Y/n]</question>',
+                $version->getVersionString()
+            )
+        );
     }
 }

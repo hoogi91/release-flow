@@ -1,0 +1,13 @@
+version: '3.7'
+
+services:
+  workspace:
+    image: hoogi91/release-flow/workspace:latest
+    build:
+      context: .
+      dockerfile: ./workspace/Dockerfile
+      args:
+        - PHP_VERSION=${COMPOSE_PHP_VERSION}
+    volumes:
+      - ../:/var/www/release-flow
+    pid: host

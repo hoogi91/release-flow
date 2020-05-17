@@ -10,11 +10,10 @@ namespace Hoogi91\ReleaseFlow\Utility;
 class LogUtility
 {
 
-    const LOG_FILE = 'release-flow.log';
-
-    const SEVERITY_INFO = 'INFO';
-    const SEVERITY_WARNING = 'WARNING';
-    const SEVERITY_ERROR = 'ERROR';
+    private const LOG_FILE = 'release-flow.log';
+    private const SEVERITY_INFO = 'INFO';
+    private const SEVERITY_WARNING = 'WARNING';
+    private const SEVERITY_ERROR = 'ERROR';
 
     /**
      * @param string $message
@@ -22,14 +21,21 @@ class LogUtility
      *
      * @return bool
      */
-    public static function log($message, $severity = self::SEVERITY_INFO)
+    public static function log($message, $severity = self::SEVERITY_INFO): bool
     {
-        $logFile = rtrim(PHP_WORKDIR, '/') . '/' . static::LOG_FILE;
-        return error_log(vsprintf('[%s][%s] %s', [
-            date('d/M/Y:H:i:s O'),
-            $severity,
-            $message,
-        ]), 3, $logFile);
+        $logFile = PathUtility::getCwd() . '/' . static::LOG_FILE;
+        return error_log(
+            vsprintf(
+                '[%s][%s] %s',
+                [
+                    date('d/M/Y:H:i:s O'),
+                    $severity,
+                    $message,
+                ]
+            ),
+            3,
+            $logFile
+        );
     }
 
     /**
@@ -37,7 +43,7 @@ class LogUtility
      *
      * @return bool
      */
-    public static function info($message)
+    public static function info($message): bool
     {
         return self::log($message, self::SEVERITY_INFO);
     }
@@ -47,7 +53,7 @@ class LogUtility
      *
      * @return bool
      */
-    public static function warning($message)
+    public static function warning($message): bool
     {
         return self::log($message, self::SEVERITY_WARNING);
     }
@@ -57,7 +63,7 @@ class LogUtility
      *
      * @return bool
      */
-    public static function error($message)
+    public static function error($message): bool
     {
         return self::log($message, self::SEVERITY_ERROR);
     }

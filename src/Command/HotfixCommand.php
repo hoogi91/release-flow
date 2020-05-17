@@ -2,7 +2,6 @@
 
 namespace Hoogi91\ReleaseFlow\Command;
 
-use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -17,23 +16,24 @@ class HotfixCommand extends AbstractFlowIncrementCommand
     /**
      * creates a hotfix branch with a patch version increment
      */
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
-        $this->setName('hotfix')->setAliases([
-            'hot',
-            'fix',
-        ])->setDescription('creates a hotfix branch with a patch version increment');
+        $this->setName('hotfix')->setAliases(
+            [
+                'hot',
+                'fix',
+            ]
+        )->setDescription('creates a hotfix branch with a patch version increment');
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
-     * @throws ReleaseFlowException
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $result = parent::execute($input, $output);
         if ($result !== 0) {

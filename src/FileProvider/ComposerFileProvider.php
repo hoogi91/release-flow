@@ -5,7 +5,6 @@ namespace Hoogi91\ReleaseFlow\FileProvider;
 use Hoogi91\ReleaseFlow\Application;
 use Hoogi91\ReleaseFlow\Configuration\Composer;
 use Hoogi91\ReleaseFlow\Exception\FileProviderException;
-use Symfony\Component\Console\Application as SymfonyApplication;
 use Version\Exception\InvalidVersionStringException;
 use Version\Version;
 
@@ -27,19 +26,19 @@ class ComposerFileProvider implements FileProviderInterface
      *
      * @return void
      */
-    public function enableDryRun()
+    public function enableDryRun(): void
     {
         $this->dryRun = true;
     }
 
     /**
-     * @param Version                        $version
-     * @param Application|SymfonyApplication $application
+     * @param Version $version
+     * @param Application $application
      *
      * @return bool true on successful processing and false if nothing happened
      * @throws FileProviderException if issue occurred and file provider version bump needs to stop and rollback
      */
-    public function process(Version $version, SymfonyApplication $application): bool
+    public function process(Version $version, Application $application): bool
     {
         // do not set/update composer.json if file doesn't exists
         if (is_file($application->getComposer()->getFileLocation()) === false) {
@@ -55,26 +54,30 @@ class ComposerFileProvider implements FileProviderInterface
         try {
             $composerVersion = Version::fromString($composerVersion);
             if ($composerVersion->isGreaterOrEqualTo($version)) {
-                throw new FileProviderException('Current composer.json version shouldn\'t be greater or equal than new version.');
+                throw new FileProviderException(
+                    'Current composer.json version shouldn\'t be greater or equal than new version.'
+                );
             }
 
             // add new version to composer file
             return $this->setVersionInFile($version, $application->getComposer());
         } catch (InvalidVersionStringException $e) {
-            throw new FileProviderException('Current composer.json version can\'t be read. Please fix this issue first!');
+            throw new FileProviderException(
+                'Current composer.json version can\'t be read. Please fix this issue first!'
+            );
         }
     }
 
     /**
      * Sets the new version in composer.json
      *
-     * @param Version  $version
+     * @param Version $version
      * @param Composer $composer
      *
      * @return bool
      * @throws FileProviderException
      */
-    protected function setVersionInFile(Version $version, Composer $composer)
+    protected function setVersionInFile(Version $version, Composer $composer): bool
     {
         if ($this->dryRun !== false) {
             return true;

@@ -2,7 +2,7 @@
 
 namespace Hoogi91\ReleaseFlow\Command;
 
-use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
+use Hoogi91\ReleaseFlow\Application;
 use Hoogi91\ReleaseFlow\VersionControl\VersionControlInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\FormatterHelper;
@@ -15,12 +15,13 @@ use Symfony\Component\Console\Output\OutputInterface;
  *
  * @author Thorsten Hogenkamp <hoogi20@googlemail.com>
  * @author Daniel Pozzi <bonndan76@googlemail.com>
+ * @method Application getApplication()
  */
 abstract class AbstractFlowCommand extends Command
 {
-    const MAJOR = 'major';
-    const MINOR = 'minor';
-    const PATCH = 'patch';
+    protected const MAJOR = 'major';
+    protected const MINOR = 'minor';
+    protected const PATCH = 'patch';
 
     /**
      * The version control
@@ -72,7 +73,7 @@ abstract class AbstractFlowCommand extends Command
      *
      * @param VersionControlInterface $vcs
      */
-    public function setVersionControl(VersionControlInterface $vcs)
+    public function setVersionControl(VersionControlInterface $vcs): void
     {
         $this->versionControl = $vcs;
     }
@@ -80,29 +81,30 @@ abstract class AbstractFlowCommand extends Command
     /**
      * creates a release branch with version increment
      */
-    protected function configure()
+    protected function configure(): void
     {
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'only print command without executing');
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
-     * @throws ReleaseFlowException
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->input = $input;
         $this->output = $output;
 
         if ($this->getVersionControl()->canProcessCommand(get_class($this)) === false) {
-            $output->writeln(sprintf(
-                '<error>%s could not be executed with version control %s</error>',
-                get_class($this),
-                get_class($this->versionControl)
-            ));
+            $output->writeln(
+                sprintf(
+                    '<error>%s could not be executed with version control %s</error>',
+                    get_class($this),
+                    get_class($this->versionControl)
+                )
+            );
             return 255;
         }
 

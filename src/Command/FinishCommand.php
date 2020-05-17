@@ -24,20 +24,20 @@ class FinishCommand extends AbstractFlowCommand
      * finishes a regular release or hotfix branch
      * and updates version numbers in additional project files if registered
      */
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
         $this->setName('finish')->setDescription('finish release or hotfix branch and create new tag.');
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
      * @throws ReleaseFlowException
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $result = parent::execute($input, $output);
         if ($result !== 0) {
@@ -49,7 +49,10 @@ class FinishCommand extends AbstractFlowCommand
 
         // check if repository has local modifications that needs to be committed first
         if ($this->getVersionControl()->hasLocalModifications() === true) {
-            $saveModifications = new ConfirmationQuestion('<question>You have uncommitted changes in your working copy that needs to be committed first! Do you want to proceed? [Y/n]</question>');
+            $saveModifications = new ConfirmationQuestion(
+                '<question>You have uncommitted changes in your working copy that needs to be committed first!'
+                . ' Do you want to proceed? [Y/n]</question>'
+            );
             if ($helper->ask($input, $output, $saveModifications) === false) {
                 return 0;
             }
@@ -61,20 +64,24 @@ class FinishCommand extends AbstractFlowCommand
         $newVersion = $this->getVersionControl()->getFlowVersion();
         if ($this->getVersionControl()->isHotfix()) {
             // create questions for hotfix branch
-            $confirm = new ConfirmationQuestion(sprintf(
-                '<question>Shall hotfix/%s be finished? [Y/n]</question>',
-                $newVersion->getVersionString()
-            ));
+            $confirm = new ConfirmationQuestion(
+                sprintf(
+                    '<question>Shall hotfix/%s be finished? [Y/n]</question>',
+                    $newVersion->getVersionString()
+                )
+            );
             $publish = new ConfirmationQuestion(
                 '<question>Shall this hotfix be published automatically? [y/N]</question>',
                 false
             );
         } else {
             // on default we create questions for a release branch
-            $confirm = new ConfirmationQuestion(sprintf(
-                '<question>Shall release/%s be finished? [Y/n]</question>',
-                $newVersion->getVersionString()
-            ));
+            $confirm = new ConfirmationQuestion(
+                sprintf(
+                    '<question>Shall release/%s be finished? [Y/n]</question>',
+                    $newVersion->getVersionString()
+                )
+            );
             $publish = new ConfirmationQuestion(
                 '<question>Shall this release be published automatically? [y/N]</question>',
                 false
@@ -91,10 +98,12 @@ class FinishCommand extends AbstractFlowCommand
 
             // commit changes to version control before finishing release/hotfix
             if ($this->getVersionControl()->hasLocalModifications() === true) {
-                $this->getVersionControl()->saveWorkingCopy(sprintf(
-                    'Bump version to %s',
-                    $newVersion->getVersionString()
-                ));
+                $this->getVersionControl()->saveWorkingCopy(
+                    sprintf(
+                        'Bump version to %s',
+                        $newVersion->getVersionString()
+                    )
+                );
             }
 
             // finish hotfix and publish it if user accepts
@@ -109,22 +118,22 @@ class FinishCommand extends AbstractFlowCommand
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return string
      */
-    protected function getCommitMessage($input, $output)
+    protected function getCommitMessage($input, $output): string
     {
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
 
         // get commit message from user
         $commitMessage = $helper->ask($input, $output, new Question('Please enter commit message:'));
-        $confirmCommitMessage = new ConfirmationQuestion(sprintf(
-            'Please confirm commit message "%s" [y/N]',
-            $commitMessage
-        ), false);
+        $confirmCommitMessage = new ConfirmationQuestion(
+            sprintf('Please confirm commit message "%s" [y/N]', $commitMessage),
+            false
+        );
 
         if ($helper->ask($input, $output, $confirmCommitMessage) === false) {
             return $this->getCommitMessage($input, $output);

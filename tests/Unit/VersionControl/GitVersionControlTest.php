@@ -2,10 +2,12 @@
 
 namespace Hoogi91\ReleaseFlow\Tests\Unit\VersionControl;
 
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Hoogi91\ReleaseFlow\VersionControl\GitVersionControl;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use PHPUnit\Framework\TestCase;
+use PHPUnit_Framework_MockObject_MockObject;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use TQ\Git\Cli\Binary;
 use TQ\Git\Repository\Repository;
@@ -24,12 +26,12 @@ class GitVersionControlTest extends TestCase
     protected $vcs;
 
     /**
-     * @var Repository|\PHPUnit_Framework_MockObject_MockObject
+     * @var Repository|PHPUnit_Framework_MockObject_MockObject
      */
     protected $git;
 
     /**
-     * @var Binary|\PHPUnit_Framework_MockObject_MockObject
+     * @var Binary|PHPUnit_Framework_MockObject_MockObject
      */
     protected $gitBinary;
 
@@ -38,18 +40,20 @@ class GitVersionControlTest extends TestCase
      */
     protected $gitRepositoryPath;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
-        $this->gitBinary = $this->getMockBuilder(Binary::class)->disableOriginalConstructor()->setMethods([
-            'tag',
-        ])->getMock();
+        $this->gitBinary = $this->getMockBuilder(Binary::class)->disableOriginalConstructor()->setMethods(
+            [
+                'tag',
+            ]
+        )->getMock();
         $this->git = $this->createMock(Repository::class);
         $this->git->method('getGit')->willReturn($this->gitBinary);
 
         // get version control from current GIT repository
-        $this->vcs = new GitVersionControl(PHP_WORKDIR);
+        $this->vcs = new GitVersionControl(PHP_WORKING_DIRECTORY);
 
         // update git property in vcs
         $reflectionProperty = new \ReflectionProperty(GitVersionControl::class, 'git');
@@ -57,59 +61,48 @@ class GitVersionControlTest extends TestCase
         $reflectionProperty->setValue($this->vcs, $this->git);
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionOnWorkingDirectoryIsNotGitRepository()
+    public function testThrowsExceptionOnWorkingDirectoryIsNotGitRepository(): void
     {
+        $this->expectException(VersionControlException::class);
         new GitVersionControl(vfsStream::create([], vfsStream::newDirectory('no-repo'))->url());
     }
 
-    /**
-     * @test
-     */
-    public function testGettingBranches()
+    public function testGettingBranches(): void
     {
-        $this->git->expects($this->once())->method('getBranches')->willReturn([
-            'develop',
-            'master',
-        ]);
+        $this->git->expects($this->once())->method('getBranches')->willReturn(
+            [
+                'develop',
+                'master',
+            ]
+        );
         $this->assertCount(2, $this->vcs->getBranches());
     }
 
-    /**
-     * @test
-     */
-    public function testGettingCurrentBranch()
+    public function testGettingCurrentBranch(): void
     {
         $this->git->expects($this->once())->method('getCurrentBranch')->willReturn('develop');
         $this->assertEquals('develop', $this->vcs->getCurrentBranch());
     }
 
-    /**
-     * @test
-     */
-    public function testHasLocalModifications()
+    public function testHasLocalModifications(): void
     {
         $this->git->expects($this->once())->method('isDirty')->willReturn(true);
         $this->assertTrue($this->vcs->hasLocalModifications());
     }
 
-    /**
-     * @test
-     */
-    public function testGettingTags()
+    public function testGettingTags(): void
     {
-        $tagClass = new class
-        {
+        $tagClass = new class {
             public function getStdOut()
             {
-                return implode(PHP_EOL, [
-                    '1.0.0',
-                    '1.0.1',
-                    '1.0.2',
-                ]);
+                return implode(
+                    PHP_EOL,
+                    [
+                        '1.0.0',
+                        '1.0.1',
+                        '1.0.2',
+                    ]
+                );
             }
         };
 
@@ -121,21 +114,20 @@ class GitVersionControlTest extends TestCase
         $this->assertEquals('1.0.2', $tags[2]->getVersionString());
     }
 
-    /**
-     * @test
-     */
-    public function testGettingTagsWithInvalidSemVer()
+    public function testGettingTagsWithInvalidSemVer(): void
     {
-        $tagClass = new class
-        {
+        $tagClass = new class {
             public function getStdOut()
             {
-                return implode(PHP_EOL, [
-                    '1.0.0',
-                    '1.0.1',
-                    '1-0-2',
-                    '1.0.3',
-                ]);
+                return implode(
+                    PHP_EOL,
+                    [
+                        '1.0.0',
+                        '1.0.1',
+                        '1-0-2',
+                        '1.0.3',
+                    ]
+                );
             }
         };
 
@@ -147,58 +139,44 @@ class GitVersionControlTest extends TestCase
         $this->assertEquals('1.0.3', $tags[2]->getVersionString());
     }
 
-    /**
-     * @test
-     */
-    public function testRevertingWorkingCopy()
+    public function testRevertingWorkingCopy(): void
     {
         $this->git->expects($this->once())->method('reset');
         $this->assertTrue($this->vcs->revertWorkingCopy());
     }
 
-    /**
-     * @test
-     */
-    public function testRevertingWorkingCopyFailed()
+    public function testRevertingWorkingCopyFailed(): void
     {
-        $this->git->expects($this->once())->method('reset')->willThrowException($this->createMock(CallException::class));
+        $this->git->expects($this->once())->method('reset')->willThrowException(
+            $this->createMock(CallException::class)
+        );
         $this->assertFalse($this->vcs->revertWorkingCopy());
     }
 
-    /**
-     * @test
-     */
-    public function testRevertingWorkingCopyOnDryRun()
+    public function testRevertingWorkingCopyOnDryRun(): void
     {
         $this->vcs->setDryRun($this->createMock(ConsoleOutput::class));
         $this->git->expects($this->never())->method('reset');
         $this->assertTrue($this->vcs->revertWorkingCopy());
     }
 
-    /**
-     * @test
-     */
-    public function testSavingWorkingCopy()
+    public function testSavingWorkingCopy(): void
     {
         $this->git->expects($this->once())->method('add');
         $this->git->expects($this->once())->method('commit')->with($this->equalTo('Commit Message'));
         $this->assertTrue($this->vcs->saveWorkingCopy('Commit Message'));
     }
 
-    /**
-     * @test
-     */
-    public function testSavingWorkingCopyFailed()
+    public function testSavingWorkingCopyFailed(): void
     {
         $this->git->expects($this->once())->method('add');
-        $this->git->expects($this->once())->method('commit')->willThrowException($this->createMock(CallException::class));
+        $this->git->expects($this->once())->method('commit')->willThrowException(
+            $this->createMock(CallException::class)
+        );
         $this->assertFalse($this->vcs->saveWorkingCopy('Commit Message'));
     }
 
-    /**
-     * @test
-     */
-    public function testSavingWorkingCopyOnDryRun()
+    public function testSavingWorkingCopyOnDryRun(): void
     {
         $this->vcs->setDryRun($this->createMock(ConsoleOutput::class));
         $this->git->expects($this->never())->method('add');
@@ -207,10 +185,9 @@ class GitVersionControlTest extends TestCase
     }
 
     /**
-     * @test
      * @dataProvider startCommandDataProvider
      */
-    public function testGettingStartCommands($branchType, $assertCount)
+    public function testGettingStartCommands($branchType, $assertCount): void
     {
         $version = Version::fromString('1.0.0');
 
@@ -222,7 +199,7 @@ class GitVersionControlTest extends TestCase
         $this->assertCount($assertCount, $commands);
     }
 
-    public function startCommandDataProvider()
+    public function startCommandDataProvider(): array
     {
         return array(
             [GitVersionControl::RELEASE, 1],
@@ -232,10 +209,9 @@ class GitVersionControlTest extends TestCase
     }
 
     /**
-     * @test
      * @dataProvider finishCommandDataProvider
      */
-    public function testGettingFinishCommands($branchType, $publish, $assertCount)
+    public function testGettingFinishCommands($branchType, $publish, $assertCount): void
     {
         $version = Version::fromString('1.0.0');
 
@@ -246,7 +222,7 @@ class GitVersionControlTest extends TestCase
         $this->assertCount($assertCount, $commands);
     }
 
-    public function finishCommandDataProvider()
+    public function finishCommandDataProvider(): array
     {
         return array(
             [GitVersionControl::RELEASE, true, 7],

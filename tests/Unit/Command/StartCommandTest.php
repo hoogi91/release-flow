@@ -3,6 +3,7 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\Command;
 
 use Hoogi91\ReleaseFlow\Command\StartCommand;
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Version\Version;
 
@@ -16,17 +17,14 @@ class StartCommandTest extends CommandTest
     /**
      * setup command class
      */
-    public function getCommandClass()
+    public function getCommandClass(): string
     {
         return StartCommand::class;
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionIfActiveFlowExists()
+    public function testThrowsExceptionIfActiveFlowExists(): void
     {
+        $this->expectException(VersionControlException::class);
         $this->vcs->expects($this->once())
             ->method('getBranches')
             ->willReturn(['master', 'develop', 'release/1.0.3']);
@@ -38,12 +36,9 @@ class StartCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionIfAlreadyInTheFlow()
+    public function testThrowsExceptionIfAlreadyInTheFlow(): void
     {
+        $this->expectException(VersionControlException::class);
         $this->vcs->expects($this->once())
             ->method('getBranches')
             ->willReturn(['master', 'develop', 'release/1.0.3']);
@@ -55,20 +50,21 @@ class StartCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     */
-    public function testStartsMinorRelease()
+    public function testStartsMinorRelease(): void
     {
-        $this->setOptionValues([
-            'dry-run' => true,
-            'force'   => false,
-        ]);
+        $this->setOptionValues(
+            [
+                'dry-run' => true,
+                'force' => false,
+            ]
+        );
 
         // set current tagged version to 2.3.4
-        $this->vcs->method('getTags')->willReturn([
-            Version::fromString('2.3.4'),
-        ]);
+        $this->vcs->method('getTags')->willReturn(
+            [
+                Version::fromString('2.3.4'),
+            ]
+        );
 
         // allow to create new release branch
         $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
@@ -89,24 +85,25 @@ class StartCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     */
-    public function testStartsMajorReleaseWithArgument()
+    public function testStartsMajorReleaseWithArgument(): void
     {
-        $this->setOptionValues([
-            'dry-run'   => true,
-            'increment' => 'major',
-            'force'     => false,
-        ]);
+        $this->setOptionValues(
+            [
+                'dry-run' => true,
+                'increment' => 'major',
+                'force' => false,
+            ]
+        );
 
         // make sure that increment option will be read from options
         $this->input->expects($this->once())->method('hasOption')->with($this->equalTo('increment'))->willReturn(true);
 
         // set current tagged version to 2.3.4
-        $this->vcs->method('getTags')->willReturn([
-            Version::fromString('2.3.4'),
-        ]);
+        $this->vcs->method('getTags')->willReturn(
+            [
+                Version::fromString('2.3.4'),
+            ]
+        );
 
         // allow to create new release branch
         $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
@@ -126,24 +123,25 @@ class StartCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     */
-    public function testStartsMajorReleaseForce()
+    public function testStartsMajorReleaseForce(): void
     {
-        $this->setOptionValues([
-            'dry-run'   => true,
-            'increment' => 'major',
-            'force'     => true,
-        ]);
+        $this->setOptionValues(
+            [
+                'dry-run' => true,
+                'increment' => 'major',
+                'force' => true,
+            ]
+        );
 
         // make sure that increment option will be read from options
         $this->input->expects($this->once())->method('hasOption')->with($this->equalTo('increment'))->willReturn(true);
 
         // set current tagged version to 2.3.4
-        $this->vcs->method('getTags')->willReturn([
-            Version::fromString('2.3.4'),
-        ]);
+        $this->vcs->method('getTags')->willReturn(
+            [
+                Version::fromString('2.3.4'),
+            ]
+        );
 
         // allow to create new release branch
         $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
@@ -163,21 +161,25 @@ class StartCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    public function validateStartMinorReleaseCommands($commands)
+    public function validateStartMinorReleaseCommands($commands): string
     {
         $this->assertInternalType('array', $commands);
         $this->assertCount(1, $commands);
 
         // check if commands are in correct order and have no issues
         $this->assertEquals('git checkout -b release/2.4.0 develop', $commands[0]);
+
+        return '';
     }
 
-    public function validateStartMajorReleaseCommands($commands)
+    public function validateStartMajorReleaseCommands($commands): string
     {
         $this->assertInternalType('array', $commands);
         $this->assertCount(1, $commands);
 
         // check if commands are in correct order and have no issues
         $this->assertEquals('git checkout -b release/3.0.0 develop', $commands[0]);
+
+        return '';
     }
 }

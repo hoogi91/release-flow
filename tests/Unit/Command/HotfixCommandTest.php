@@ -3,6 +3,7 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\Command;
 
 use Hoogi91\ReleaseFlow\Command\HotfixCommand;
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Version\Version;
 
@@ -16,17 +17,14 @@ class HotfixCommandTest extends CommandTest
     /**
      * setup command class
      */
-    public function getCommandClass()
+    public function getCommandClass(): string
     {
         return HotfixCommand::class;
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionIfActiveFlowExists()
+    public function testThrowsExceptionIfActiveFlowExists(): void
     {
+        $this->expectException(VersionControlException::class);
         $this->vcs->expects($this->once())
             ->method('getBranches')
             ->willReturn(['master', 'develop', 'hotfix/1.0.3']);
@@ -38,12 +36,9 @@ class HotfixCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionIfAlreadyInTheFlow()
+    public function testThrowsExceptionIfAlreadyInTheFlow(): void
     {
+        $this->expectException(VersionControlException::class);
         $this->vcs->expects($this->once())
             ->method('getBranches')
             ->willReturn(['master', 'develop', 'hotfix/1.0.3']);
@@ -55,20 +50,21 @@ class HotfixCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     */
-    public function testStartsHotfix()
+    public function testStartsHotfix(): void
     {
-        $this->setOptionValues([
-            'dry-run' => true,
-            'force'   => false,
-        ]);
+        $this->setOptionValues(
+            [
+                'dry-run' => true,
+                'force' => false,
+            ]
+        );
 
         // set current tagged version to 2.3.4
-        $this->vcs->method('getTags')->willReturn([
-            Version::fromString('2.3.4'),
-        ]);
+        $this->vcs->method('getTags')->willReturn(
+            [
+                Version::fromString('2.3.4'),
+            ]
+        );
 
         // allow to create new hotfix branch
         $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
@@ -88,20 +84,21 @@ class HotfixCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     */
-    public function testStartsHotfixForce()
+    public function testStartsHotfixForce(): void
     {
-        $this->setOptionValues([
-            'dry-run' => true,
-            'force'   => true,
-        ]);
+        $this->setOptionValues(
+            [
+                'dry-run' => true,
+                'force' => true,
+            ]
+        );
 
         // set current tagged version to 2.3.4
-        $this->vcs->method('getTags')->willReturn([
-            Version::fromString('2.3.4'),
-        ]);
+        $this->vcs->method('getTags')->willReturn(
+            [
+                Version::fromString('2.3.4'),
+            ]
+        );
 
         // allow to create new hotfix branch
         $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
@@ -121,12 +118,14 @@ class HotfixCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    public function validateStartHotfixCommands($commands)
+    public function validateStartHotfixCommands($commands): string
     {
         $this->assertInternalType('array', $commands);
         $this->assertCount(1, $commands);
 
         // check if commands are in correct order and have no issues
         $this->assertEquals('git checkout -b hotfix/2.3.5 master', $commands[0]);
+
+        return '';
     }
 }

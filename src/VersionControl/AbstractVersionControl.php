@@ -23,30 +23,30 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * master identifying string in branch name
      * @var string
      */
-    const MASTER = 'master';
+    public const MASTER = 'master';
 
     /**
      * develop identifying string in branch name
      * @var string
      */
-    const DEVELOP = 'develop';
+    public const DEVELOP = 'develop';
 
     /**
      * release identifying string in branch name
      * @var string
      */
-    const RELEASE = 'release';
+    public const RELEASE = 'release';
 
     /**
      * hotfix identifying string in branch name
      * @var string
      */
-    const HOTFIX = 'hotfix';
+    public const HOTFIX = 'hotfix';
 
     /**
      * list of allowed commands by version control
      */
-    const ALLOWED_COMMANDS = [
+    private const ALLOWED_COMMANDS = [
         StatusCommand::class,
         StartCommand::class,
         HotfixCommand::class,
@@ -61,14 +61,14 @@ abstract class AbstractVersionControl implements VersionControlInterface
 
     /**
      * dry-run: do nothing
-     * @var OutputInterface
+     * @var OutputInterface|null
      */
-    protected $dryRun = null;
+    protected $dryRun;
 
     /**
      * @param string $workingDirectory
      */
-    public function setWorkingDirectory(string $workingDirectory)
+    public function setWorkingDirectory(string $workingDirectory): void
     {
         $this->workingDirectory = $workingDirectory;
     }
@@ -76,7 +76,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
     /**
      * @param OutputInterface $output
      */
-    public function setDryRun(?OutputInterface $output)
+    public function setDryRun(?OutputInterface $output): void
     {
         $this->dryRun = $output;
     }
@@ -86,21 +86,21 @@ abstract class AbstractVersionControl implements VersionControlInterface
      *
      * @return array
      */
-    abstract public function getBranches();
+    abstract public function getBranches(): array;
 
     /**
      * Return the current branch
      *
      * @return string
      */
-    abstract public function getCurrentBranch();
+    abstract public function getCurrentBranch(): string;
 
     /**
      * Return all tags of the project
      *
      * @return Version[]
      */
-    abstract public function getTags();
+    abstract public function getTags(): array;
 
     /**
      * @param string $command
@@ -108,51 +108,71 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * @return bool
      * @throws VersionControlException
      */
-    public function canProcessCommand(string $command)
+    public function canProcessCommand(string $command): bool
     {
-        $canProcess = in_array($command, static::ALLOWED_COMMANDS);
+        $canProcess = in_array($command, self::ALLOWED_COMMANDS);
         if ($canProcess !== true) {
             return false;
         }
 
         // evaluate release and hotfix branches
-        $releaseOrHotfixBranch = array_values(array_filter($this->getBranches(), function ($branch) {
-            return strpos($branch, static::RELEASE) === 0 || strpos($branch, static::HOTFIX) === 0;
-        }));
+        $releaseOrHotfixBranch = array_values(
+            array_filter(
+                $this->getBranches(),
+                static function ($branch) {
+                    return strpos($branch, static::RELEASE) === 0 || strpos($branch, static::HOTFIX) === 0;
+                }
+            )
+        );
 
         if ($command === FinishCommand::class) {
             if (empty($releaseOrHotfixBranch)) {
                 // release or hotfix hasn't been started yet
-                throw new VersionControlException('You currently do not have a active flow release/hotfix branch to finish');
-            } elseif (!in_array($this->getCurrentBranch(), $releaseOrHotfixBranch)) {
+                throw new VersionControlException(
+                    'You currently do not have a active flow release/hotfix branch to finish'
+                );
+            }
+
+            if (!in_array($this->getCurrentBranch(), $releaseOrHotfixBranch, true)) {
                 // current branch isn't the release or hotfix branch => switch before execute
-                throw new VersionControlException(sprintf(
-                    'You are not in a flow release/hotfix branch (current: %s). Please switch into a flow branch: %s',
-                    $this->getCurrentBranch(),
-                    implode(', ', $releaseOrHotfixBranch)
-                ));
+                throw new VersionControlException(
+                    sprintf(
+                        'You are not in a flow release/hotfix branch (current: %s).'
+                        . ' Please switch into a flow branch: %s',
+                        $this->getCurrentBranch(),
+                        implode(', ', $releaseOrHotfixBranch)
+                    )
+                );
             }
         } elseif ($command === DevelopCommand::class) {
             if ($this->getCurrentBranch() !== 'develop') {
                 // you need to be in develop branch
-                throw new VersionControlException(sprintf(
-                    'You need to be in develop branch but current branch is: %s',
-                    $this->getCurrentBranch()
-                ));
+                throw new VersionControlException(
+                    sprintf(
+                        'You need to be in develop branch but current branch is: %s',
+                        $this->getCurrentBranch()
+                    )
+                );
             }
         } elseif (in_array($command, [StartCommand::class, HotfixCommand::class])) {
-            if (in_array($this->getCurrentBranch(), $releaseOrHotfixBranch)) {
+            if (in_array($this->getCurrentBranch(), $releaseOrHotfixBranch, true)) {
                 // already in release or hotfix branch
-                throw new VersionControlException(sprintf(
-                    'You are already in flow branch: %s',
-                    $this->getCurrentBranch()
-                ));
-            } elseif (!empty($releaseOrHotfixBranch)) {
+                throw new VersionControlException(
+                    sprintf(
+                        'You are already in flow branch: %s',
+                        $this->getCurrentBranch()
+                    )
+                );
+            }
+
+            if (!empty($releaseOrHotfixBranch)) {
                 // hotfix or release branch already exists so cancel creation
-                throw new VersionControlException(sprintf(
-                    'You already have active flow branch(es) to finish first: %s',
-                    implode(', ', $releaseOrHotfixBranch)
-                ));
+                throw new VersionControlException(
+                    sprintf(
+                        'You already have active flow branch(es) to finish first: %s',
+                        implode(', ', $releaseOrHotfixBranch)
+                    )
+                );
             }
         }
         return true;
@@ -163,30 +183,33 @@ abstract class AbstractVersionControl implements VersionControlInterface
      *
      * @return Version
      */
-    public function getCurrentVersion()
+    public function getCurrentVersion(): Version
     {
         $tags = $this->getTags();
         if (count($tags) === 0) {
             return Version::fromString('0.0.1');
         }
 
-        usort($tags, function ($v1, $v2) {
-            /** @var $v1 Version */
-            /** @var $v2 Version */
-            if ($v1->isEqualTo($v2)) {
-                return 0;
+        usort(
+            $tags,
+            static function ($v1, $v2) {
+                /** @var $v1 Version */
+                /** @var $v2 Version */
+                if ($v1->isEqualTo($v2)) {
+                    return 0;
+                }
+                return $v1->isGreaterThan($v2) ? 1 : -1;
             }
-            return $v1->isGreaterThan($v2) ? 1 : -1;
-        });
+        );
         return array_pop($tags);
     }
 
     /**
      * Return if current branch is release branch
      *
-     * @return boolean
+     * @return bool
      */
-    public function isRelease()
+    public function isRelease(): bool
     {
         return strpos($this->getCurrentBranch(), static::RELEASE . '/') === 0;
     }
@@ -194,9 +217,9 @@ abstract class AbstractVersionControl implements VersionControlInterface
     /**
      * Return if current branch is hotfix branch
      *
-     * @return boolean
+     * @return bool
      */
-    public function isHotfix()
+    public function isHotfix(): bool
     {
         return strpos($this->getCurrentBranch(), static::HOTFIX . '/') === 0;
     }
@@ -204,9 +227,9 @@ abstract class AbstractVersionControl implements VersionControlInterface
     /**
      * Checks if the current branch is a release or hotfix branch.
      *
-     * @return boolean
+     * @return bool
      */
-    protected function isInTheFlow()
+    protected function isInTheFlow(): bool
     {
         return $this->isRelease() || $this->isHotfix();
     }
@@ -217,7 +240,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * @return Version
      * @throws VersionControlException
      */
-    public function getFlowVersion()
+    public function getFlowVersion(): Version
     {
         if (!$this->isInTheFlow()) {
             throw new VersionControlException('Flow version can\'t be determined cause no flow is started!');
@@ -233,11 +256,13 @@ abstract class AbstractVersionControl implements VersionControlInterface
             }
             return Version::fromString(str_replace(static::RELEASE . '/', '', $branch));
         } catch (InvalidVersionStringException $e) {
-            LogUtility::warning(sprintf(
-                'Version Number of branch %s couldn\'t be formatted to class %s',
-                $branch,
-                Version::class
-            ));
+            LogUtility::warning(
+                sprintf(
+                    'Version Number of branch %s couldn\'t be formatted to class %s',
+                    $branch,
+                    Version::class
+                )
+            );
             throw new VersionControlException('Cannot detect version in branch name: ' . $branch);
         }
     }
@@ -249,7 +274,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
      *
      * @return string
      */
-    public function startRelease(Version $version)
+    public function startRelease(Version $version): string
     {
         return $this->executeCommands($this->getStartCommands($version, static::RELEASE));
     }
@@ -262,7 +287,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * @return string
      * @throws VersionControlException
      */
-    public function finishRelease(bool $publish = false)
+    public function finishRelease(bool $publish = false): string
     {
         if ($this->isRelease() === false) {
             throw new VersionControlException('Can\'t finish release if current branch isn\'t the release branch');
@@ -277,7 +302,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
      *
      * @return string
      */
-    public function startHotfix(Version $version)
+    public function startHotfix(Version $version): string
     {
         return $this->executeCommands($this->getStartCommands($version, static::HOTFIX));
     }
@@ -290,7 +315,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * @return string
      * @throws VersionControlException
      */
-    public function finishHotfix(bool $publish = false)
+    public function finishHotfix(bool $publish = false): string
     {
         if ($this->isHotfix() === false) {
             throw new VersionControlException('Can\'t finish hotfix if current branch isn\'t the hotfix branch');
@@ -302,20 +327,20 @@ abstract class AbstractVersionControl implements VersionControlInterface
      * Get the command line string that will be an argument of executeCommand and start the version control flow
      *
      * @param Version $version
-     * @param string  $branchType
+     * @param string $branchType
      *
      * @return string[]
      */
     abstract protected function getStartCommands(
         Version $version,
         string $branchType = self::RELEASE
-    );
+    ): array;
 
     /**
      * Get the command line string that will be an argument of executeCommand and finish the version control flow
      *
      * @param Version $version
-     * @param string  $branchType
+     * @param string $branchType
      * @param boolean $publish
      *
      * @return string[]
@@ -324,7 +349,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
         Version $version,
         string $branchType = self::RELEASE,
         bool $publish = false
-    );
+    ): array;
 
     /**
      * Will execute given command and return command's output
@@ -333,7 +358,7 @@ abstract class AbstractVersionControl implements VersionControlInterface
      *
      * @return string
      */
-    protected function executeCommands(array $commands)
+    protected function executeCommands(array $commands): string
     {
         if (empty($commands)) {
             return '<error>No command given! Nothing to do...</error>';
@@ -341,15 +366,14 @@ abstract class AbstractVersionControl implements VersionControlInterface
 
         if ($this->dryRun instanceof OutputInterface) {
             return sprintf(
-                "<error>DRY-RUN</error> <info>the following commands will be executed:</info>\n<fg=cyan>> %s</>",
+                "<error>DRY-RUN</error> <info>the following commands will be executed:</info>\n<fg=cyan>> %s</fg>",
                 implode(PHP_EOL . '> ', $commands)
             );
         }
 
-        $output = null;
         foreach ($commands as $command) {
             system($command, $var);
         }
-        return $output;
+        return '';
     }
 }

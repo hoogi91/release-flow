@@ -3,6 +3,7 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\Command;
 
 use Hoogi91\ReleaseFlow\Command\DevelopCommand;
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Version\Version;
 
@@ -16,17 +17,14 @@ class DevelopCommandTest extends CommandTest
     /**
      * setup command class
      */
-    public function getCommandClass()
+    public function getCommandClass(): string
     {
         return DevelopCommand::class;
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionIfCurrentlyNotInDevelopBranch()
+    public function testThrowsExceptionIfCurrentlyNotInDevelopBranch(): void
     {
+        $this->expectException(VersionControlException::class);
         $this->vcs->expects($this->once())
             ->method('getBranches')
             ->willReturn(['master', 'develop']);
@@ -38,20 +36,21 @@ class DevelopCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     */
-    public function testStartsDevelopVersion()
+    public function testStartsDevelopVersion(): void
     {
-        $this->setOptionValues([
-            'dry-run' => true,
-            'force'   => false,
-        ]);
+        $this->setOptionValues(
+            [
+                'dry-run' => true,
+                'force' => false,
+            ]
+        );
 
         // set current tagged version to 2.3.4
-        $this->vcs->method('getTags')->willReturn([
-            Version::fromString('2.3.4'),
-        ]);
+        $this->vcs->method('getTags')->willReturn(
+            [
+                Version::fromString('2.3.4'),
+            ]
+        );
 
         // allow to create new development version
         $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
@@ -74,20 +73,21 @@ class DevelopCommandTest extends CommandTest
         $this->assertEquals(0, $this->command->run($this->input, $this->output));
     }
 
-    /**
-     * @test
-     */
-    public function testStartsDevelopVersionWithoutConfirm()
+    public function testStartsDevelopVersionWithoutConfirm(): void
     {
-        $this->setOptionValues([
-            'dry-run' => true,
-            'force'   => false,
-        ]);
+        $this->setOptionValues(
+            [
+                'dry-run' => true,
+                'force' => false,
+            ]
+        );
 
         // set current tagged version to 2.3.4
-        $this->vcs->method('getTags')->willReturn([
-            Version::fromString('2.3.4'),
-        ]);
+        $this->vcs->method('getTags')->willReturn(
+            [
+                Version::fromString('2.3.4'),
+            ]
+        );
 
         // allow to create new development version
         $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);
@@ -105,20 +105,21 @@ class DevelopCommandTest extends CommandTest
         $this->assertEquals(0, $this->command->run($this->input, $this->output));
     }
 
-    /**
-     * @test
-     */
-    public function testStartsDevelopVersionForce()
+    public function testStartsDevelopVersionForce(): void
     {
-        $this->setOptionValues([
-            'dry-run' => true,
-            'force'   => true,
-        ]);
+        $this->setOptionValues(
+            [
+                'dry-run' => true,
+                'force' => true,
+            ]
+        );
 
         // set current tagged version to 2.3.4
-        $this->vcs->method('getTags')->willReturn([
-            Version::fromString('2.3.4'),
-        ]);
+        $this->vcs->method('getTags')->willReturn(
+            [
+                Version::fromString('2.3.4'),
+            ]
+        );
 
         // allow to create new hotfix branch
         $this->vcs->expects($this->once())->method('getBranches')->willReturn(['master', 'develop']);

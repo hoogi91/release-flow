@@ -49,7 +49,7 @@ class Composer
      * return composer json configuration
      *
      * @param string $key
-     * @param mixed  $default
+     * @param mixed $default
      *
      * @return array|string|int
      */
@@ -62,7 +62,7 @@ class Composer
      * return this package related extra configuration
      *
      * @param string $key
-     * @param mixed  $default
+     * @param mixed $default
      *
      * @return array|string|int
      */

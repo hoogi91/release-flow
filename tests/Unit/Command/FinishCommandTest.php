@@ -3,6 +3,7 @@
 namespace Hoogi91\ReleaseFlow\Tests\Unit\Command;
 
 use Hoogi91\ReleaseFlow\Command\FinishCommand;
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Symfony\Component\Console\Helper\QuestionHelper;
 
 /**
@@ -15,17 +16,14 @@ class FinishCommandTest extends CommandTest
     /**
      * setup command class
      */
-    public function getCommandClass()
+    public function getCommandClass(): string
     {
         return FinishCommand::class;
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionIfNoFlowExists()
+    public function testThrowsExceptionIfNoFlowExists(): void
     {
+        $this->expectException(VersionControlException::class);
         $this->vcs->expects($this->once())
             ->method('getBranches')
             ->willReturn(['master', 'develop', 'someOtherBranch']);
@@ -33,12 +31,9 @@ class FinishCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionIfNotInTheFlow()
+    public function testThrowsExceptionIfNotInTheFlow(): void
     {
+        $this->expectException(VersionControlException::class);
         $this->vcs->expects($this->once())
             ->method('getBranches')
             ->willReturn(['master', 'develop', 'release/1.0.3']);
@@ -50,10 +45,7 @@ class FinishCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     */
-    public function testFinishesRelease()
+    public function testFinishesRelease(): void
     {
         $this->setOptionValues(['dry-run' => true]);
 
@@ -82,10 +74,7 @@ class FinishCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    /**
-     * @test
-     */
-    public function testFinishReleaseWithAsksForLocalModificationsAndCommitMessage()
+    public function testFinishReleaseWithAsksForLocalModificationsAndCommitMessage(): void
     {
         $this->setOptionValues(['dry-run' => true]);
 
@@ -129,7 +118,7 @@ class FinishCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    public function validateFinishReleaseCommands($commands)
+    public function validateFinishReleaseCommands($commands): string
     {
         $this->assertInternalType('array', $commands);
         $this->assertCount(7, $commands);
@@ -142,12 +131,11 @@ class FinishCommandTest extends CommandTest
         $this->assertEquals('git checkout develop', $commands[4]);
         $this->assertEquals('git merge --no-ff release/1.0.3', $commands[5]);
         $this->assertEquals('git branch -d release/1.0.3', $commands[6]);
+
+        return '';
     }
 
-    /**
-     * @test
-     */
-    public function testFinishesHotfix()
+    public function testFinishesHotfix(): void
     {
         $this->setOptionValues(['dry-run' => true]);
 
@@ -176,7 +164,7 @@ class FinishCommandTest extends CommandTest
         $this->command->run($this->input, $this->output);
     }
 
-    public function validateFinishHotfixCommands($commands)
+    public function validateFinishHotfixCommands($commands): string
     {
         $this->assertInternalType('array', $commands);
         $this->assertCount(7, $commands);
@@ -189,12 +177,11 @@ class FinishCommandTest extends CommandTest
         $this->assertEquals('git checkout develop', $commands[4]);
         $this->assertEquals('git merge --no-ff hotfix/1.0.3', $commands[5]);
         $this->assertEquals('git branch -d hotfix/1.0.3', $commands[6]);
+
+        return '';
     }
 
-    /**
-     * @test
-     */
-    public function testBreakAfterNotConfirmingSaveOfLocalModifications()
+    public function testBreakAfterNotConfirmingSaveOfLocalModifications(): void
     {
         $this->setOptionValues(['dry-run' => true]);
 

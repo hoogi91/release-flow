@@ -2,7 +2,6 @@
 
 namespace Hoogi91\ReleaseFlow\Command;
 
-use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
 use Hoogi91\ReleaseFlow\VersionControl\AbstractVersionControl;
 use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -19,40 +18,44 @@ class StatusCommand extends AbstractFlowCommand
     /**
      * creates a release branch with version increment
      */
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
         $this->setName('status')->setDescription('get current repository flow status');
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
-     * @throws ReleaseFlowException
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $result = parent::execute($input, $output);
         if ($result !== 0) {
             return $result;
         }
 
-        $releaseOrHotfixBranch = array_values(array_filter(
-            $this->getVersionControl()->getBranches(),
-            function ($branch) {
-                return strpos($branch, AbstractVersionControl::RELEASE) === 0
-                    || strpos($branch, AbstractVersionControl::HOTFIX) === 0;
-            }
-        ));
+        $releaseOrHotfixBranch = array_values(
+            array_filter(
+                $this->getVersionControl()->getBranches(),
+                static function ($branch) {
+                    return strpos($branch, AbstractVersionControl::RELEASE) === 0
+                        || strpos($branch, AbstractVersionControl::HOTFIX) === 0;
+                }
+            )
+        );
         $currentVersion = $this->getVersionControl()->getCurrentVersion();
 
         $messages = [];
-        $messages[] = vsprintf('Current Branch: %s (%s)', [
-            $this->getVersionControl()->getCurrentBranch(),
-            $currentVersion,
-        ]);
+        $messages[] = vsprintf(
+            'Current Branch: %s (%s)',
+            [
+                $this->getVersionControl()->getCurrentBranch(),
+                $currentVersion,
+            ]
+        );
         $messages[] = sprintf(
             'Flow Branches: %s',
             $releaseOrHotfixBranch ? implode(', ', $releaseOrHotfixBranch) : 'none'

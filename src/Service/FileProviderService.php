@@ -2,12 +2,12 @@
 
 namespace Hoogi91\ReleaseFlow\Service;
 
+use Hoogi91\ReleaseFlow\Application;
 use Hoogi91\ReleaseFlow\Exception\FileProviderException;
 use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
 use Hoogi91\ReleaseFlow\FileProvider\ComposerFileProvider;
 use Hoogi91\ReleaseFlow\FileProvider\FileProviderInterface;
 use Hoogi91\ReleaseFlow\VersionControl\VersionControlInterface;
-use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Output\OutputInterface;
 use Version\Version;
@@ -19,7 +19,7 @@ use Version\Version;
 class FileProviderService
 {
     /**
-     * @var Application|\Hoogi91\ReleaseFlow\Application
+     * @var Application
      */
     protected $application;
 
@@ -36,7 +36,7 @@ class FileProviderService
     /**
      * FileProviderService constructor.
      *
-     * @param Application             $application
+     * @param Application $application
      * @param VersionControlInterface $versionControl
      */
     public function __construct(Application $application, VersionControlInterface $versionControl)
@@ -50,19 +50,19 @@ class FileProviderService
      * execute list of additional file providers
      *
      * @param Version $branchVersion
-     * @param bool    $dryRun
+     * @param bool $dryRun
      *
-     * @return $this
+     * @return static
      * @throws ReleaseFlowException
      */
-    public function process(Version $branchVersion, bool $dryRun = false)
+    public function process(Version $branchVersion, bool $dryRun = false): self
     {
         try {
             // get provider list with composer file provider first
             $providers = [];
             $providers[] = ComposerFileProvider::class;
 
-            // get provider clases from composer
+            // get provider classes from composer
             $additionalProviders = $this->application->getComposer()->getProviderClasses();
             if (!empty($additionalProviders)) {
                 array_push($providers, ...$additionalProviders);
@@ -74,10 +74,8 @@ class FileProviderService
 
             // iterate all providers that implement provider interface
             foreach (array_unique($providers) as $provider) {
-                if (
-                    class_exists($provider) === false ||
-                    in_array(FileProviderInterface::class, class_implements($provider)) === false
-                ) {
+                if (class_exists($provider) === false ||
+                    in_array(FileProviderInterface::class, class_implements($provider), true) === false) {
                     continue;
                 }
 
@@ -106,7 +104,7 @@ class FileProviderService
     /**
      * @return array
      */
-    public function getResults()
+    public function getResults(): array
     {
         return $this->results;
     }
@@ -114,7 +112,7 @@ class FileProviderService
     /**
      * @param OutputInterface $output
      */
-    public function printResults(OutputInterface $output)
+    public function printResults(OutputInterface $output): void
     {
         if (empty($this->results)) {
             $output->writeln('');
@@ -124,9 +122,13 @@ class FileProviderService
         }
 
         // print which file providers have been executed before bumping version
-        $messages = array_map(function ($providerClass, $success) {
-            return sprintf('  [%s] %s', ($success ? 'CHANGE' : 'SKIP'), $providerClass);
-        }, array_keys($this->results), $this->results);
+        $messages = array_map(
+            static function ($providerClass, $success) {
+                return sprintf('  [%s] %s', ($success ? 'CHANGE' : 'SKIP'), $providerClass);
+            },
+            array_keys($this->results),
+            $this->results
+        );
 
         // add short explanation message before list
         array_unshift(

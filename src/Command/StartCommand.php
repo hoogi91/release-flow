@@ -2,7 +2,6 @@
 
 namespace Hoogi91\ReleaseFlow\Command;
 
-use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -21,7 +20,7 @@ class StartCommand extends AbstractFlowIncrementCommand
     /**
      * creates a release branch with version increment
      */
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
         $this->setName('start')->setDescription('creates a release branch with version increment');
@@ -34,13 +33,12 @@ class StartCommand extends AbstractFlowIncrementCommand
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
-     * @throws ReleaseFlowException
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $result = parent::execute($input, $output);
         if ($result !== 0) {
@@ -60,12 +58,12 @@ class StartCommand extends AbstractFlowIncrementCommand
     /**
      * @return string
      */
-    protected function getIncrementType()
+    protected function getIncrementType(): string
     {
         // check if increment given can be returned directly or start user question
         if ($this->getInput()->hasOption('increment') === true) {
             $incrementType = strtolower($this->getInput()->getOption('increment'));
-            if (in_array($incrementType, [self::MAJOR, self::MINOR, self::PATCH])) {
+            if (in_array($incrementType, [self::MAJOR, self::MINOR, self::PATCH], true)) {
                 return $incrementType;
             }
         }
@@ -75,7 +73,8 @@ class StartCommand extends AbstractFlowIncrementCommand
             '<question>Please enter the version increment for your next release:</question>',
             [
                 self::MAJOR => '1.x.y => 2.0.0 (MUST on backwards <comment>incompatible</comment> changes)',
-                self::MINOR => '1.2.x => 1.3.0 (MUST on new backwards compatible functionality or public functionality marked as deprecated. MAY on substantial new functionality or improvements)',
+                self::MINOR => '1.2.x => 1.3.0 (MUST on new backwards compatible functionality or public functionality'
+                    . ' marked as deprecated. MAY on substantial new functionality or improvements)',
                 self::PATCH => '1.2.3 => 1.2.4 (MUST if only backwards compatible bug fixes introduced)',
             ]
         );

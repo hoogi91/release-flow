@@ -16,28 +16,29 @@ class StatusCommandTest extends CommandTest
     /**
      * setup command class
      */
-    public function getCommandClass()
+    public function getCommandClass(): string
     {
         return StatusCommand::class;
     }
 
-    /**
-     * @test
-     */
-    public function testSuccessfulExecution()
+    public function testSuccessfulExecution(): void
     {
-        $this->vcs->expects($this->once())->method('getTags')->willReturn([
-            Version::fromString('1.0.0'),
-            Version::fromString('2.0.0'),
-            Version::fromString('2.1.0'),
-            Version::fromString('2.2.0'),
-            Version::fromString('2.3.0'),
-        ]);
-        $this->vcs->expects($this->exactly(2))->method('getBranches')->willReturn([
-            'develop',
-            'master',
-            'release/2.3.1',
-        ]);
+        $this->vcs->expects($this->once())->method('getTags')->willReturn(
+            [
+                Version::fromString('1.0.0'),
+                Version::fromString('2.0.0'),
+                Version::fromString('2.1.0'),
+                Version::fromString('2.2.0'),
+                Version::fromString('2.3.0'),
+            ]
+        );
+        $this->vcs->expects($this->exactly(2))->method('getBranches')->willReturn(
+            [
+                'develop',
+                'master',
+                'release/2.3.1',
+            ]
+        );
         $this->vcs->expects($this->exactly(1))->method('getCurrentBranch')->willReturn('develop');
 
         /** @var FormatterHelper|\PHPUnit_Framework_MockObject_MockObject $formatter */
@@ -49,7 +50,7 @@ class StatusCommandTest extends CommandTest
         $this->assertEquals(0, $this->command->run($this->input, $this->output));
     }
 
-    public function validateMessages($messages)
+    public function validateMessages($messages): bool
     {
         if (is_string($messages)) {
             $this->assertNotEmpty($messages);

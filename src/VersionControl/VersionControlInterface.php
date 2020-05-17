@@ -18,88 +18,88 @@ interface VersionControlInterface
      *
      * @param string $workingDirectory
      */
-    public function setWorkingDirectory(string $workingDirectory);
+    public function setWorkingDirectory(string $workingDirectory): void;
 
     /**
      * set dry-run indicator to prevent execution of version control commands
      *
      * @param OutputInterface $output
      */
-    public function setDryRun(OutputInterface $output);
+    public function setDryRun(OutputInterface $output): void;
 
     /**
      * check if current command can be processed by this version control system type
      *
      * @param string $command
      *
-     * @return boolean
+     * @return bool
      */
-    public function canProcessCommand(string $command);
+    public function canProcessCommand(string $command): bool;
 
     /**
      * Return array list of all branches
      *
      * @return array
      */
-    public function getBranches();
+    public function getBranches(): array;
 
     /**
      * Return the current branch
      *
      * @return string
      */
-    public function getCurrentBranch();
+    public function getCurrentBranch(): string;
 
     /**
-     * Returns the hight valid version.
+     * Returns the current valid version.
      *
      * @return Version
      */
-    public function getCurrentVersion();
+    public function getCurrentVersion(): Version;
 
     /**
      * Returns the current flow version number => see getFlowBranch if branch is release or hotfix
      *
      * @return Version
      */
-    public function getFlowVersion();
+    public function getFlowVersion(): Version;
 
     /**
      * Return all tags of the project
      *
      * @return Version[]
      */
-    public function getTags();
+    public function getTags(): array;
 
     /**
      * Returns if if local modifications exist.
      *
-     * @return boolean
+     * @return bool
      */
-    public function hasLocalModifications();
+    public function hasLocalModifications(): bool;
 
     /**
      * revert all working copy changes
      *
      * @return bool
      */
-    public function revertWorkingCopy();
+    public function revertWorkingCopy(): bool;
 
     /**
      * Save the local modifications (commit)
      *
-     * @param $commitMsg
+     * @param string $commitMsg
      *
-     * @return boolean
+     * @return bool
      */
-    public function saveWorkingCopy(string $commitMsg = '');
+    public function saveWorkingCopy(string $commitMsg = ''): bool;
 
     /**
      * Return if current branch is release branch
      *
-     * @return boolean
+     * @return bool
      */
-    public function isRelease();
+    public function isRelease(): bool;
 
     /**
      * Start a git flow release.
@@ -120,9 +120,9 @@ interface VersionControlInterface
     /**
      * Return if current branch is hotfix branch
      *
-     * @return boolean
+     * @return bool
      */
-    public function isHotfix();
+    public function isHotfix(): bool;
 
     /**
      * Start a git flow hotfix.

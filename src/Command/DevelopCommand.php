@@ -18,23 +18,25 @@ class DevelopCommand extends AbstractFlowIncrementCommand
     /**
      * creates a release branch with version increment
      */
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
-        $this->setName('dev')->setAliases([
-            'develop',
-            'development',
-        ])->setDescription('add dev flag to current version on develop branch');
+        $this->setName('dev')->setAliases(
+            [
+                'develop',
+                'development',
+            ]
+        )->setDescription('add dev flag to current version on develop branch');
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
      * @throws ReleaseFlowException
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $result = parent::execute($input, $output);
         if ($result !== 0) {
@@ -44,7 +46,10 @@ class DevelopCommand extends AbstractFlowIncrementCommand
         // get next patch version with dev flag and set it on file providers
         $newVersion = $this->getNextVersion(self::PATCH)->withPreRelease('dev');
 
-        $output->writeln('<question>Note that this version will only be set by file providers and isn\'t add as tag to Version Control!</question>');
+        $output->writeln(
+            '<question>Note that this version will only be set by file providers and isn\'t'
+            . ' add as tag to Version Control!</question>'
+        );
         if ($this->confirmNextVersion($newVersion) === true) {
             // execute version file providers to set flow version in additional files
             $fileProviderService = new FileProviderService($this->getApplication(), $this->getVersionControl());
@@ -53,10 +58,12 @@ class DevelopCommand extends AbstractFlowIncrementCommand
 
             // commit changes to version control
             if ($this->getVersionControl()->hasLocalModifications() === true) {
-                $this->getVersionControl()->saveWorkingCopy(sprintf(
-                    'Bump version to %s',
-                    $newVersion->getVersionString()
-                ));
+                $this->getVersionControl()->saveWorkingCopy(
+                    sprintf(
+                        'Bump version to %s',
+                        $newVersion->getVersionString()
+                    )
+                );
             }
         }
         return 0;

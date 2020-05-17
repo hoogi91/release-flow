@@ -2,8 +2,8 @@
 
 namespace Hoogi91\ReleaseFlow\FileProvider;
 
+use Hoogi91\ReleaseFlow\Application;
 use Hoogi91\ReleaseFlow\Exception\FileProviderException;
-use Symfony\Component\Console\Application;
 use Version\Version;
 
 /**
@@ -18,10 +18,10 @@ interface FileProviderInterface
      *
      * @return void
      */
-    public function enableDryRun();
+    public function enableDryRun(): void;
 
     /**
-     * @param Version     $version
+     * @param Version $version
      * @param Application $application
      *
      * @return bool true on successful processing and false if nothing happened

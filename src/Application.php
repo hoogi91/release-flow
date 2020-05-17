@@ -2,6 +2,7 @@
 
 namespace Hoogi91\ReleaseFlow;
 
+use Exception;
 use Hoogi91\ReleaseFlow\Command\AbstractFlowCommand;
 use Hoogi91\ReleaseFlow\Command\DevelopCommand;
 use Hoogi91\ReleaseFlow\Command\FinishCommand;
@@ -9,7 +10,7 @@ use Hoogi91\ReleaseFlow\Command\HotfixCommand;
 use Hoogi91\ReleaseFlow\Command\StartCommand;
 use Hoogi91\ReleaseFlow\Command\StatusCommand;
 use Hoogi91\ReleaseFlow\Configuration\Composer;
-use Hoogi91\ReleaseFlow\Exception\ReleaseFlowException;
+use Hoogi91\ReleaseFlow\Utility\PathUtility;
 use Hoogi91\ReleaseFlow\VersionControl\VersionControlInterface;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputArgument;
@@ -53,17 +54,13 @@ class Application extends \Symfony\Component\Console\Application
         try {
             parent::__construct($name, $version);
 
-            if (!defined('PHP_WORKDIR')) {
-                define('PHP_WORKDIR', getcwd());
-            }
-
             // read composer.json file configuration for usage
-            $this->composer = new Composer(PHP_WORKDIR);
+            $this->composer = new Composer(PathUtility::getCwd());
 
             // build version control class from composer settings
             $versionControlClass = $this->composer->getVersionControlClass();
-            $this->vcs = new $versionControlClass(PHP_WORKDIR);
-        } catch (ReleaseFlowException $e) {
+            $this->vcs = new $versionControlClass(PathUtility::getCwd());
+        } catch (Exception $e) {
             $this->outputErrorAndExit($e->getMessage());
         }
     }
@@ -71,7 +68,7 @@ class Application extends \Symfony\Component\Console\Application
     /**
      * @return Composer
      */
-    public function getComposer()
+    public function getComposer(): Composer
     {
         return $this->composer;
     }
@@ -79,7 +76,7 @@ class Application extends \Symfony\Component\Console\Application
     /**
      * @param string $message
      */
-    protected function outputErrorAndExit($message)
+    protected function outputErrorAndExit($message): void
     {
         $output = new ConsoleOutput();
         $output->writeln(sprintf('<error>%s</error>', $message));
@@ -91,16 +88,18 @@ class Application extends \Symfony\Component\Console\Application
      *
      * @return InputDefinition An InputDefinition instance
      */
-    protected function getDefaultInputDefinition()
+    protected function getDefaultInputDefinition(): InputDefinition
     {
-        return new InputDefinition(array(
-            new InputArgument('command', InputArgument::REQUIRED, 'The command to execute'),
+        return new InputDefinition(
+            array(
+                new InputArgument('command', InputArgument::REQUIRED, 'The command to execute'),
 
-            new InputOption('--help', '-h', InputOption::VALUE_NONE, 'Display this help message'),
-            new InputOption('--version', '-V', InputOption::VALUE_NONE, 'Display this application version'),
-            new InputOption('--ansi', '', InputOption::VALUE_NONE, 'Force ANSI output'),
-            new InputOption('--no-ansi', '', InputOption::VALUE_NONE, 'Disable ANSI output'),
-        ));
+                new InputOption('--help', '-h', InputOption::VALUE_NONE, 'Display this help message'),
+                new InputOption('--version', '-V', InputOption::VALUE_NONE, 'Display this application version'),
+                new InputOption('--ansi', '', InputOption::VALUE_NONE, 'Force ANSI output'),
+                new InputOption('--no-ansi', '', InputOption::VALUE_NONE, 'Disable ANSI output'),
+            )
+        );
     }
 
     /**
@@ -108,24 +107,25 @@ class Application extends \Symfony\Component\Console\Application
      *
      * @param string $name command class name
      */
-    protected function addCommand($name)
+    protected function addCommand($name): void
     {
         /** @var AbstractFlowCommand $command */
         $command = new $name();
+        $command->setApplication($this);
         $command->setVersionControl($this->vcs);
         $this->add($command);
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
-     * @throws \Exception
+     * @throws Exception
      */
-    public function run(InputInterface $input = null, OutputInterface $output = null)
+    public function run(InputInterface $input = null, OutputInterface $output = null): int
     {
-        $output = new ConsoleOutput();
+        $output = $output ?? new ConsoleOutput();
         $outputStyle = new OutputFormatterStyle('black', 'yellow', ['bold']);
         $output->getFormatter()->setStyle('notice', $outputStyle);
 

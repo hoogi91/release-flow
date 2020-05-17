@@ -2,6 +2,7 @@
 
 namespace Hoogi91\ReleaseFlow\Tests\Unit\VersionControl;
 
+use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Hoogi91\ReleaseFlow\VersionControl\GitFlowVersionControl;
 use org\bovigo\vfs\vfsStream;
 
@@ -16,11 +17,11 @@ class GitFlowVersionControlTest extends GitVersionControlTest
      */
     protected $vcs;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         // get version control from current GIT repository
-        $this->vcs = new GitFlowVersionControl(PHP_WORKDIR);
+        $this->vcs = new GitFlowVersionControl(PHP_WORKING_DIRECTORY);
 
         // update git property in vcs
         $reflectionProperty = new \ReflectionProperty(GitFlowVersionControl::class, 'git');
@@ -28,16 +29,13 @@ class GitFlowVersionControlTest extends GitVersionControlTest
         $reflectionProperty->setValue($this->vcs, $this->git);
     }
 
-    /**
-     * @test
-     * @expectedException \Hoogi91\ReleaseFlow\Exception\VersionControlException
-     */
-    public function testThrowsExceptionOnWorkingDirectoryIsNotGitRepository()
+    public function testThrowsExceptionOnWorkingDirectoryIsNotGitRepository(): void
     {
+        $this->expectException(VersionControlException::class);
         new GitFlowVersionControl(vfsStream::create([], vfsStream::newDirectory('no-repo'))->url());
     }
 
-    public function startCommandDataProvider()
+    public function startCommandDataProvider(): array
     {
         return array(
             [GitFlowVersionControl::RELEASE, 1],
@@ -46,7 +44,7 @@ class GitFlowVersionControlTest extends GitVersionControlTest
         );
     }
 
-    public function finishCommandDataProvider()
+    public function finishCommandDataProvider(): array
     {
         return array(
             [GitFlowVersionControl::RELEASE, true, 1],

@@ -4,6 +4,7 @@ namespace Hoogi91\ReleaseFlow\VersionControl;
 
 use Hoogi91\ReleaseFlow\Exception\VersionControlException;
 use Hoogi91\ReleaseFlow\Utility\LogUtility;
+use InvalidArgumentException;
 use Symfony\Component\Console\Output\OutputInterface;
 use TQ\Git\Repository\Repository;
 use TQ\Vcs\Cli\CallException;
@@ -39,18 +40,22 @@ class GitVersionControl extends AbstractVersionControl
         try {
             $this->setWorkingDirectory($cwd);
             $this->git = Repository::open($this->workingDirectory);
-        } catch (\InvalidArgumentException $e) {
-            throw new VersionControlException(sprintf(
-                'Git Repository couldn\'t be found in %s',
-                $this->workingDirectory
-            ));
+        } catch (InvalidArgumentException $e) {
+            throw new VersionControlException(
+                sprintf(
+                    'Git Repository couldn\'t be found in %s - ' . $e->getMessage(),
+                    $this->workingDirectory
+                ),
+                $e->getCode(),
+                $e
+            );
         }
     }
 
     /**
      * @return array
      */
-    public function getBranches()
+    public function getBranches(): array
     {
         return $this->git->getBranches();
     }
@@ -58,7 +63,7 @@ class GitVersionControl extends AbstractVersionControl
     /**
      * @return string
      */
-    public function getCurrentBranch()
+    public function getCurrentBranch(): string
     {
         return $this->git->getCurrentBranch();
     }
@@ -66,7 +71,7 @@ class GitVersionControl extends AbstractVersionControl
     /**
      * @return bool
      */
-    public function hasLocalModifications()
+    public function hasLocalModifications(): bool
     {
         return $this->git->isDirty();
     }
@@ -74,7 +79,7 @@ class GitVersionControl extends AbstractVersionControl
     /**
      * @return Version[]
      */
-    public function getTags()
+    public function getTags(): array
     {
         /** @var CallResult $result */
         $result = $this->git->getGit()->{'tag'}($this->workingDirectory, []);
@@ -83,18 +88,27 @@ class GitVersionControl extends AbstractVersionControl
             return [];
         }
 
-        return array_values(array_filter(array_map(function ($versionNumber) {
-            try {
-                return Version::fromString($versionNumber);
-            } catch (InvalidVersionStringException $e) {
-                LogUtility::warning(sprintf(
-                    'Version Number %s couldn\'t be formatted to class %s',
-                    $versionNumber,
-                    Version::class
-                ));
-                return null;
-            }
-        }, $tags)));
+        return array_values(
+            array_filter(
+                array_map(
+                    static function ($versionNumber) {
+                        try {
+                            return Version::fromString($versionNumber);
+                        } catch (InvalidVersionStringException $e) {
+                            LogUtility::warning(
+                                sprintf(
+                                    'Version Number %s couldn\'t be formatted to class %s',
+                                    $versionNumber,
+                                    Version::class
+                                )
+                            );
+                            return null;
+                        }
+                    },
+                    $tags
+                )
+            )
+        );
     }
 
     /**
@@ -102,7 +116,7 @@ class GitVersionControl extends AbstractVersionControl
      *
      * @return bool
      */
-    public function revertWorkingCopy()
+    public function revertWorkingCopy(): bool
     {
         try {
             if (!$this->dryRun instanceof OutputInterface) {
@@ -122,17 +136,19 @@ class GitVersionControl extends AbstractVersionControl
      *
      * @return bool
      */
-    public function saveWorkingCopy(string $commitMsg = '')
+    public function saveWorkingCopy(string $commitMsg = ''): bool
     {
         try {
             if (!$this->dryRun instanceof OutputInterface) {
                 $this->git->add();
                 $this->git->commit($commitMsg);
             } else {
-                $this->dryRun->writeln(sprintf(
-                    '<error>DRY-RUN</error> <info>Working Copy changes will be committed with message "%s"',
-                    $commitMsg
-                ));
+                $this->dryRun->writeln(
+                    sprintf(
+                        '<error>DRY-RUN</error> <info>Working Copy changes will be committed with message "%s"',
+                        $commitMsg
+                    )
+                );
             }
             return true;
         } catch (CallException $e) {
@@ -145,15 +161,17 @@ class GitVersionControl extends AbstractVersionControl
      * Get the command line string that will be an argument of executeCommand and start the version control flow
      *
      * @param Version $version
-     * @param string  $branchType
+     * @param string $branchType
      *
      * @return string[]
      */
-    protected function getStartCommands(Version $version, string $branchType = self::RELEASE)
+    protected function getStartCommands(Version $version, string $branchType = self::RELEASE): array
     {
         if ($branchType === self::RELEASE) {
             return [sprintf('git checkout -b release/%s %s', $version->getVersionString(), self::DEVELOP)];
-        } elseif ($branchType === self::HOTFIX) {
+        }
+
+        if ($branchType === self::HOTFIX) {
             return [sprintf('git checkout -b hotfix/%s %s', $version->getVersionString(), self::MASTER)];
         }
         return [];
@@ -163,33 +181,42 @@ class GitVersionControl extends AbstractVersionControl
      * Get the command line string that will be an argument of executeCommand and finish the version control flow
      *
      * @param Version $version
-     * @param string  $branchType
+     * @param string $branchType
      * @param boolean $publish
      *
      * @return string[]
      */
-    protected function getFinishCommands(Version $version, string $branchType = self::RELEASE, bool $publish = false)
-    {
+    protected function getFinishCommands(
+        Version $version,
+        string $branchType = self::RELEASE,
+        bool $publish = false
+    ): array {
         if ($branchType === self::RELEASE) {
-            return array_filter([
-                sprintf('git checkout %s', self::MASTER),
-                sprintf('git merge --no-ff release/%s', $version->getVersionString()),
-                sprintf('git tag -a %1$s -m "Tagging version %1$s"', $version->getVersionString()),
-                ($publish ? 'git push origin --tags' : ''),
-                sprintf('git checkout %s', self::DEVELOP),
-                sprintf('git merge --no-ff release/%s', $version->getVersionString()),
-                sprintf('git branch -d release/%s', $version->getVersionString()),
-            ]);
-        } elseif ($branchType === self::HOTFIX) {
-            return array_filter([
-                sprintf('git checkout %s', self::MASTER),
-                sprintf('git merge --no-ff hotfix/%s', $version->getVersionString()),
-                sprintf('git tag -a %1$s -m "Tagging version %1$s"', $version->getVersionString()),
-                ($publish ? 'git push origin --tags' : ''),
-                sprintf('git checkout %s', self::DEVELOP),
-                sprintf('git merge --no-ff hotfix/%s', $version->getVersionString()),
-                sprintf('git branch -d hotfix/%s', $version->getVersionString()),
-            ]);
+            return array_filter(
+                [
+                    sprintf('git checkout %s', self::MASTER),
+                    sprintf('git merge --no-ff release/%s', $version->getVersionString()),
+                    sprintf('git tag -a %1$s -m "Tagging version %1$s"', $version->getVersionString()),
+                    ($publish ? 'git push origin --tags' : ''),
+                    sprintf('git checkout %s', self::DEVELOP),
+                    sprintf('git merge --no-ff release/%s', $version->getVersionString()),
+                    sprintf('git branch -d release/%s', $version->getVersionString()),
+                ]
+            );
+        }
+
+        if ($branchType === self::HOTFIX) {
+            return array_filter(
+                [
+                    sprintf('git checkout %s', self::MASTER),
+                    sprintf('git merge --no-ff hotfix/%s', $version->getVersionString()),
+                    sprintf('git tag -a %1$s -m "Tagging version %1$s"', $version->getVersionString()),
+                    ($publish ? 'git push origin --tags' : ''),
+                    sprintf('git checkout %s', self::DEVELOP),
+                    sprintf('git merge --no-ff hotfix/%s', $version->getVersionString()),
+                    sprintf('git branch -d hotfix/%s', $version->getVersionString()),
+                ]
+            );
         }
         return [];
     }
